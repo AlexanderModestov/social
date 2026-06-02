@@ -1,3 +1,5 @@
+import asyncio
+
 import httpx
 from bs4 import BeautifulSoup
 
@@ -18,5 +20,4 @@ class ScraperService:
             return ""
 
     async def scrape_urls(self, urls: list[str]) -> list[str]:
-        import asyncio
         return await asyncio.gather(*[self.scrape_url(url) for url in urls])
