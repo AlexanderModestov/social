@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from bot.db.repository import UserRepository, ToneOfVoiceRepository
+from bot.db.repository import UserRepository
 
 
 @pytest.mark.asyncio
