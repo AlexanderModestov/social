@@ -29,9 +29,10 @@ class PlaywrightService:
             for _ in range(5):
                 await page.evaluate("window.scrollBy(0, window.innerHeight * 0.6)")
                 await asyncio.sleep(self.RECORD_DURATION / 5)
+            video = page.video  # capture reference before close
             await page.close()
             await context.close()
-            video_path = await page.video.path()
+            video_path = await video.path()
             await browser.close()
 
         return video_path
