@@ -1,0 +1,53 @@
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+
+def main_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎭 Create tone of voice", callback_data="action:tone_of_voice")],
+        [InlineKeyboardButton(text="✍️ Create content", callback_data="action:create_content")],
+    ])
+
+
+def platform_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💼 LinkedIn post", callback_data="platform:linkedin")],
+        [InlineKeyboardButton(text="🎵 TikTok video", callback_data="platform:tiktok")],
+    ])
+
+
+def tiktok_subtype_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📱 Product demo", callback_data="tiktok:product_demo")],
+        [InlineKeyboardButton(text="🎬 Video from plot", callback_data="tiktok:video_plot")],
+    ])
+
+
+def post_actions_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 Regenerate", callback_data="post:regenerate"),
+         InlineKeyboardButton(text="✏️ Edit", callback_data="post:edit")],
+        [InlineKeyboardButton(text="💾 Save", callback_data="post:save")],
+    ])
+
+
+def tone_of_voice_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Save", callback_data="tov:save"),
+         InlineKeyboardButton(text="🔄 Regenerate", callback_data="tov:regenerate")],
+    ])
+
+
+def style_words_keyboard(selected: list[str]) -> InlineKeyboardMarkup:
+    words = ["Formal", "Casual", "Inspiring", "Analytical", "Direct", "Storyteller"]
+    rows = []
+    for i in range(0, len(words), 3):
+        row = []
+        for word in words[i:i+3]:
+            prefix = "✅ " if word in selected else ""
+            row.append(InlineKeyboardButton(
+                text=f"{prefix}{word}",
+                callback_data=f"style:{word}"
+            ))
+        rows.append(row)
+    rows.append([InlineKeyboardButton(text="➡️ Continue", callback_data="style:done")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)

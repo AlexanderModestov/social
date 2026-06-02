@@ -1,0 +1,17 @@
+from bot.keyboards.inline import main_menu_keyboard, platform_keyboard, tiktok_subtype_keyboard
+
+def test_main_menu_has_two_buttons():
+    kb = main_menu_keyboard()
+    buttons = [btn for row in kb.inline_keyboard for btn in row]
+    assert len(buttons) == 2
+
+def test_platform_keyboard_has_linkedin_and_tiktok():
+    kb = platform_keyboard()
+    callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+    assert "platform:linkedin" in callbacks
+    assert "platform:tiktok" in callbacks
+
+def test_tiktok_subtype_has_two_options():
+    kb = tiktok_subtype_keyboard()
+    buttons = [btn for row in kb.inline_keyboard for btn in row]
+    assert len(buttons) == 2
