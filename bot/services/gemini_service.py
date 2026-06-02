@@ -29,7 +29,7 @@ class GeminiService:
                 image_data = f.read()
             contents.append({"mime_type": "image/jpeg", "data": image_data})
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         response = await loop.run_in_executor(
             None,
             lambda: self.client.models.generate_content(
