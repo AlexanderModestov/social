@@ -33,7 +33,14 @@ class ClaudeService:
             system=system_prompt,
             messages=[{"role": "user", "content": user_message}],
         )
-        return json.loads(response.content[0].text)
+        text = response.content[0].text.strip()
+        # strip markdown code fences if Claude wraps the JSON
+        if text.startswith("```"):
+            text = text.split("```", 2)[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.rstrip("`").strip()
+        return json.loads(text)
 
     async def generate_linkedin_post(
         self,
