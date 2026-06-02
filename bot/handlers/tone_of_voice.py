@@ -107,7 +107,7 @@ async def on_save_profile(callback: CallbackQuery, state: FSMContext):
         repo = ToneOfVoiceRepository(session)
         await repo.create(
             user_id=callback.from_user.id,
-            name=f"Profile {data['role'][:30]}",
+            name=f"Profile {data.get('role', '')[:30]}",
             profile_json=data["generated_profile"],
         )
         await session.commit()
@@ -120,19 +120,28 @@ async def on_regenerate_profile(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     await callback.message.edit_text("Regenerating...")
     service = ClaudeService()
-    profile = await service.generate_tone_of_voice(
-        role=data["role"],
-        audience=data["audience"],
-        style_words=data["style_words"],
-        examples=data["examples"],
-    )
+    try:
+        profile = await service.generate_tone_of_voice(
+            role=data["role"],
+            audience=data["audience"],
+            style_words=data["style_words"],
+            examples=data["examples"],
+        )
+    except Exception as e:
+        await callback.message.edit_text(
+            f"Error regenerating profile: {e}. Please try again.",
+            reply_markup=tone_of_voice_confirm_keyboard(),
+        )
+        await callback.answer()
+        return
     await state.update_data(generated_profile=profile)
     profile_text = (
         f"*Your tone of voice profile:*\n\n"
         f"*Voice:* {profile.get('voice_summary', '')}\n"
         f"*Style:* {', '.join(profile.get('tone_words', []))}\n"
         f"*Always:* {'; '.join(profile.get('always', []))}\n"
-        f"*Avoid:* {'; '.join(profile.get('avoid', []))}"
+        f"*Avoid:* {'; '.join(profile.get('avoid', []))}\n"
+        f"*Audience:* {profile.get('audience', '')}"
     )
     await callback.message.edit_text(profile_text, parse_mode="Markdown", reply_markup=tone_of_voice_confirm_keyboard())
     await callback.answer()
