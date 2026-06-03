@@ -1,6 +1,7 @@
 import json
 import anthropic
 from pathlib import Path
+from bot.config import settings
 
 SKILLS_DIR = Path(__file__).parent.parent.parent / "skills"
 
@@ -11,7 +12,7 @@ def _load_skill(path: str) -> str:
 
 class ClaudeService:
     def __init__(self):
-        self.client = anthropic.AsyncAnthropic()
+        self.client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
     async def generate_tone_of_voice(
         self,
