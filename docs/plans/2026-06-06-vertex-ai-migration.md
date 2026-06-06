@@ -70,10 +70,11 @@ git commit -m "feat: replace google_api_key with GCP project/location + SA-JSON 
 
 ---
 
-### Task 2: Update conftest and .env.example
+### Task 2: Update conftest, test_config, and .env.example
 
 **Files:**
 - Modify: `conftest.py`
+- Modify: `tests/test_config.py`
 - Modify: `.env.example`
 
 **Step 1: Update `conftest.py`**
@@ -89,6 +90,44 @@ os.environ.setdefault("ANTHROPIC_API_KEY", "test_key")
 os.environ.setdefault("GCP_PROJECT_ID", "test-project")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 ```
+
+**Step 1b: Update `tests/test_config.py`**
+
+This test still references the removed `google_api_key`/`GOOGLE_API_KEY` and does
+not set the now-required `gcp_project_id`. Replace its body so it sets
+`GCP_PROJECT_ID` and asserts the new field, and so the missing-env test includes
+`GCP_PROJECT_ID`:
+
+```python
+import pytest
+from bot.config import Settings
+
+
+def test_settings_loads_from_env(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test_token")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test_claude")
+    monkeypatch.setenv("GCP_PROJECT_ID", "test-project")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://x:y@localhost/z")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.telegram_bot_token == "test_token"
+    assert settings.anthropic_api_key == "test_claude"
+    assert settings.gcp_project_id == "test-project"
+    assert settings.gcp_location == "us-central1"
+    assert settings.database_url == "postgresql+asyncpg://x:y@localhost/z"
+
+
+def test_settings_raises_on_missing_env(monkeypatch):
+    for key in ("TELEGRAM_BOT_TOKEN", "ANTHROPIC_API_KEY", "GCP_PROJECT_ID", "DATABASE_URL"):
+        monkeypatch.delenv(key, raising=False)
+    with pytest.raises(Exception):
+        Settings(_env_file=None)
+```
+
+Note `Settings(_env_file=None)` disables `.env` loading so the test is
+hermetic — it exercises only the monkeypatched env vars, independent of any
+local `.env`.
 
 **Step 2: Update `.env.example`**
 
@@ -162,13 +201,19 @@ git commit -m "chore: swap google-generativeai for google-genai SDK"
 
 **Files:**
 - Modify: `bot/services/gemini_service.py`
-- Test: `tests/test_gemini_service.py`
+- Test: `tests/services/test_gemini_service.py` (REPLACE existing brittle mock test)
 
 **Step 1: Write the failing import-safety test**
 
+The existing `tests/services/test_gemini_service.py` is a synchronous SDK-mock
+test that (a) conflicts with the design's "no SDK-mock test" stance and (b)
+won't survive the async rewrite (it mocks `models.generate_content` as sync,
+but the new code awaits `client.aio.models.generate_content`). REPLACE its
+entire contents with the import-safety tests below.
+
 The design's key invariant: importing the service and constructing
 `GeminiService` must NOT require GCP credentials (so CI stays green). The client
-is created lazily and cached. Create `tests/test_gemini_service.py`:
+is created lazily and cached. Replace `tests/services/test_gemini_service.py` with:
 
 ```python
 from functools import lru_cache
