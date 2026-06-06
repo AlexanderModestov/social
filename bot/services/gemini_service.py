@@ -20,30 +20,6 @@ def _get_client() -> genai.Client:
 class GeminiService:
     MODEL = "gemini-2.5-flash"
 
-    async def generate_video(
-        self,
-        description: str,
-        image_paths: list[str],
-        tone_profile: dict,
-    ):
-        system_prompt = (
-            "You are a TikTok video creator. Based on the description, images, "
-            "and tone of voice, generate a short engaging video (15-60 seconds). "
-            f"Tone of voice: {json.dumps(tone_profile)}"
-        )
-        parts = [types.Part.from_text(text=description)]
-        for path in image_paths:
-            with open(path, "rb") as f:
-                parts.append(
-                    types.Part.from_bytes(data=f.read(), mime_type="image/jpeg")
-                )
-
-        return await _get_client().aio.models.generate_content(
-            model=self.MODEL,
-            contents=parts,
-            config=types.GenerateContentConfig(system_instruction=system_prompt),
-        )
-
     def _split_scenes(self, text: str, max_scenes: int = 3) -> list[str]:
         # Split on the "Scene N:" marker so multi-line descriptions are preserved.
         parts = re.split(r"(?im)^\s*Scene\s+\d+:\s*", text)
@@ -52,6 +28,18 @@ class GeminiService:
             return scenes[:max_scenes]
         paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
         return paragraphs[:max_scenes]
+
+    async def _generate(self, description: str, image_paths: list[str], system_prompt: str) -> str:
+        parts = [types.Part.from_text(text=description)]
+        for path in image_paths:
+            with open(path, "rb") as f:
+                parts.append(types.Part.from_bytes(data=f.read(), mime_type="image/jpeg"))
+        resp = await _get_client().aio.models.generate_content(
+            model=self.MODEL,
+            contents=parts,
+            config=types.GenerateContentConfig(system_instruction=system_prompt),
+        )
+        return resp.text or ""
 
     async def write_veo_prompt(
         self, description: str, image_paths: list[str], tone_profile: dict,
@@ -64,16 +52,7 @@ class GeminiService:
             "prompt text, no preamble. "
             f"Match this tone of voice: {json.dumps(tone_profile)}"
         )
-        parts = [types.Part.from_text(text=description)]
-        for path in image_paths:
-            with open(path, "rb") as f:
-                parts.append(types.Part.from_bytes(data=f.read(), mime_type="image/jpeg"))
-        resp = await _get_client().aio.models.generate_content(
-            model=self.MODEL,
-            contents=parts,
-            config=types.GenerateContentConfig(system_instruction=system_prompt),
-        )
-        return (resp.text or "").strip()
+        return (await self._generate(description, image_paths, system_prompt)).strip()
 
     async def write_veo_scenes(
         self, description: str, image_paths: list[str], tone_profile: dict, max_scenes: int = 3,
@@ -87,13 +66,5 @@ class GeminiService:
             "Output only the scenes, no preamble. "
             f"Match this tone of voice: {json.dumps(tone_profile)}"
         )
-        parts = [types.Part.from_text(text=description)]
-        for path in image_paths:
-            with open(path, "rb") as f:
-                parts.append(types.Part.from_bytes(data=f.read(), mime_type="image/jpeg"))
-        resp = await _get_client().aio.models.generate_content(
-            model=self.MODEL,
-            contents=parts,
-            config=types.GenerateContentConfig(system_instruction=system_prompt),
-        )
-        return self._split_scenes(resp.text or "", max_scenes)
+        text = await self._generate(description, image_paths, system_prompt)
+        return self._split_scenes(text, max_scenes)
