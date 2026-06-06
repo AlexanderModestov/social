@@ -51,3 +51,17 @@ def style_words_keyboard(selected: list[str]) -> InlineKeyboardMarkup:
         rows.append(row)
     rows.append([InlineKeyboardButton(text="➡️ Continue", callback_data="style:done")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def video_mode_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚡ Quick clip (5–8s)", callback_data="videomode:quick")],
+        [InlineKeyboardButton(text="🎬 Full video (≤3 scenes)", callback_data="videomode:full")],
+    ])
+
+
+def prompt_review_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Accept", callback_data="veo:accept"),
+         InlineKeyboardButton(text="✏️ Edit", callback_data="veo:edit")],
+    ])
