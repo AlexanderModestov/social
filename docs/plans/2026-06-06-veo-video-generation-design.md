@@ -133,14 +133,22 @@ video = op.response.generated_videos[0].video
 video renders.
 
 ### Output resolution (the one runtime unknown)
-Veo on Vertex returns inline bytes **or** requires a GCS output bucket,
-depending on model/project. Strategy:
-1. Try bytes: `client.files.download(file=video)` → `video.video_bytes` → temp `.mp4`.
-2. If inline output is rejected, set `output_gcs_uri` (a configured bucket) and
-   download the object.
+**Correction (found during implementation):** `client.files.download(...)` is
+**Gemini-Developer-only** — it raises `ValueError` on a `vertexai=True` client.
+So the original "try `files.download`" step does not apply on Vertex. The actual
+behavior:
+1. **No bucket configured (default):** Veo's `generate_videos` response carries
+   the clip **inline** — `op.response.generated_videos[0].video.video_bytes` is
+   already populated. Write those bytes straight to a temp `.mp4`. No download
+   call needed.
+2. **GCS output (`GCS_OUTPUT_BUCKET` set):** `output_gcs_uri` is added to the
+   config, Veo writes to the bucket, and `video_bytes` is empty. VeoService
+   currently **guards this with a clear `RuntimeError`** rather than silently
+   failing; fetching from GCS (via `google-cloud-storage` or the returned uri)
+   is **deferred** until/unless the inline path proves insufficient.
 
-Confirm which path the project allows with one real call during implementation.
-Add optional `GCS_OUTPUT_BUCKET` config **only if** the bytes path fails.
+Task 7's smoke test confirms the inline path works on this project. Implement the
+GCS branch only if inline bytes come back empty.
 
 ## Config additions (`bot/config.py`, `.env.example`)
 - `VEO_MODEL` (default the confirmed Veo 3.1 preview ID; verify against the

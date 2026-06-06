@@ -10,7 +10,7 @@
 
 **Design reference:** `docs/plans/2026-06-06-veo-video-generation-design.md`
 
-**Verified against installed SDK (google-genai 2.8.0):** `client.aio.models.generate_videos`, `client.aio.operations.get`, `client.files.download`, `types.Image.from_file`, and `GenerateVideosConfig` fields `aspect_ratio` / `duration_seconds` / `generate_audio` / `number_of_videos` / `output_gcs_uri` all exist.
+**Verified against installed SDK (google-genai 2.8.0):** `client.aio.models.generate_videos`, `client.aio.operations.get`, `types.Image.from_file`, and `GenerateVideosConfig` fields `aspect_ratio` / `duration_seconds` / `generate_audio` / `number_of_videos` / `output_gcs_uri` all exist. NOTE: `client.files.download` exists but is **Gemini-Developer-only** (raises on a `vertexai=True` client) — on Vertex, `generate_videos` returns inline bytes (`video.video_bytes`), so no download call is used.
 
 **Conventions from this repo:** use `.venv\Scripts\python.exe` for all python/pytest; tests live under `tests/` and `tests/services/`; the Vertex client is lazy + `@lru_cache` so imports need no credentials; end commit messages with the `Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>` trailer.
 
@@ -346,9 +346,16 @@ class VeoService:
             op = await client.aio.operations.get(op)
 
         video = op.response.generated_videos[0].video
+        # NOTE (implementation correction): do NOT call client.files.download() —
+        # it is Gemini-Developer-only and raises ValueError on a vertexai=True
+        # client. On Vertex, generate_videos returns inline bytes, so video_bytes
+        # is already populated. Write it directly; raise a clear error if empty
+        # (the GCS-only case). See the as-built veo_service.py / _write_clip.
+        if not video.video_bytes:
+            raise RuntimeError(
+                "Veo returned no inline video bytes (likely a GCS-only response)."
+            )
         out_path = os.path.join(tempfile.mkdtemp(), "clip.mp4")
-        # Bytes-first; GCS path returns a uri the SDK can still download.
-        client.files.download(file=video)
         with open(out_path, "wb") as f:
             f.write(video.video_bytes)
         return out_path
@@ -627,9 +634,11 @@ Veo 3.1 id and set `VEO_MODEL` in `.env` accordingly (no code change).
 .venv\Scripts\python.exe -c "import asyncio; from bot.services.veo_service import VeoService; print(asyncio.run(VeoService().generate_clip('A cozy coffee shop in autumn, slow dolly-in, warm golden light, steam rising from a latte, 9:16 vertical')))"
 ```
 Expected: after a few minutes, prints a path to an `.mp4`. Open it — a vertical
-clip with audio. This also confirms the **bytes-vs-GCS** output path; if
-`video.video_bytes` is empty/None, set `GCS_OUTPUT_BUCKET` and adjust the
-download (see Task 5 note).
+clip with audio. This confirms the **inline-bytes** path works on this project.
+If instead it raises the "no inline video bytes" RuntimeError, the project is
+GCS-only — set `GCS_OUTPUT_BUCKET` and implement the GCS download (deferred; see
+design doc "Output resolution"). Note `client.files.download` is NOT usable here
+(Gemini-Developer-only; raises on the Vertex client).
 
 **Step 5: Manual smoke test — full video (stitched)**
 
