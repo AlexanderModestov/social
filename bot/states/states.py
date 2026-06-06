@@ -17,7 +17,6 @@ class TikTokStates(StatesGroup):
     recording = State()
     waiting_description = State()
     collecting_materials = State()
-    generating_video = State()
     choosing_video_mode = State()
     reviewing_prompt = State()
     editing_prompt = State()

@@ -6,7 +6,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message, InlineKeyboardButton, InlineKeyboardMarkup
 from bot.db.session import async_session_factory
-from bot.db.repository import ToneOfVoiceRepository, PostHistoryRepository
+from bot.db.repository import ToneOfVoiceRepository
 from bot.keyboards.inline import tiktok_subtype_keyboard, video_mode_keyboard, prompt_review_keyboard
 from bot.services.claude_service import ClaudeService
 from bot.services.gemini_service import GeminiService
