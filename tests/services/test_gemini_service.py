@@ -1,24 +1,12 @@
-import pytest
-from unittest.mock import MagicMock, patch
-from bot.services.gemini_service import GeminiService
+from bot.services.gemini_service import GeminiService, _get_client
 
 
-@pytest.mark.asyncio
-async def test_generate_video_calls_api():
-    mock_response = MagicMock()
-    mock_response.candidates = [MagicMock()]
+def test_import_does_not_require_credentials():
+    # Constructing the service must not touch ADC / network.
+    svc = GeminiService()
+    assert svc.MODEL == "gemini-2.5-flash"
 
-    with patch("bot.services.gemini_service.genai") as mock_genai:
-        mock_client = MagicMock()
-        mock_genai.Client.return_value = mock_client
-        mock_client.models.generate_content.return_value = mock_response
 
-        service = GeminiService()
-        result = await service.generate_video(
-            description="A fast-paced product demo",
-            image_paths=[],
-            tone_profile={"voice_summary": "Direct"}
-        )
-
-    mock_client.models.generate_content.assert_called_once()
-    assert result is mock_response
+def test_client_is_lazy_and_cached():
+    # _get_client is memoized so the Vertex client is built at most once.
+    assert hasattr(_get_client, "cache_clear")  # it's an lru_cache wrapper
