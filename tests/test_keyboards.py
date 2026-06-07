@@ -1,4 +1,4 @@
-from bot.keyboards.inline import main_menu_keyboard, platform_keyboard, tiktok_subtype_keyboard
+from bot.keyboards.inline import main_menu_keyboard, platform_keyboard, tiktok_subtype_keyboard, tov_method_keyboard
 
 def test_main_menu_has_two_buttons():
     kb = main_menu_keyboard()
@@ -15,3 +15,14 @@ def test_tiktok_subtype_has_two_options():
     kb = tiktok_subtype_keyboard()
     buttons = [btn for row in kb.inline_keyboard for btn in row]
     assert len(buttons) == 2
+
+def test_tov_method_keyboard_has_two_buttons():
+    kb = tov_method_keyboard()
+    buttons = [btn for row in kb.inline_keyboard for btn in row]
+    assert len(buttons) == 2
+
+def test_tov_method_keyboard_callback_data():
+    kb = tov_method_keyboard()
+    callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+    assert "tov:wizard" in callbacks
+    assert "tov:instagram" in callbacks

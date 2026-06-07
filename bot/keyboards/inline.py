@@ -65,3 +65,10 @@ def prompt_review_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="✅ Accept", callback_data="veo:accept"),
          InlineKeyboardButton(text="✏️ Edit", callback_data="veo:edit")],
     ])
+
+
+def tov_method_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🧙 Answer a few questions", callback_data="tov:wizard")],
+        [InlineKeyboardButton(text="📸 Import from Instagram", callback_data="tov:instagram")],
+    ])
