@@ -65,7 +65,7 @@ def split_message(text: str, max_len: int = 4096) -> list[str]:
             parts.append(text)
             break
         split_at = text.rfind("\n", 0, max_len)
-        if split_at == -1:
+        if split_at <= 0:
             split_at = max_len
         parts.append(text[:split_at])
         text = text[split_at:].lstrip("\n")
