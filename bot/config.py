@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     anthropic_api_key: str
     gcp_project_id: str
     gcp_location: str = "us-central1"
-    veo_model: str = "veo-3.1-generate-preview"
+    veo_model: str = "veo-3.1-generate-001"
     gcs_output_bucket: Optional[str] = None
     google_application_credentials_json: Optional[str] = None
     database_url: str
