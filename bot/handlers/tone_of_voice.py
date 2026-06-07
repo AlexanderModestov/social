@@ -185,7 +185,7 @@ async def on_regenerate_profile(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(ToneOfVoiceStates.choosing_method, F.data == "tov:instagram")
 async def on_instagram_chosen(callback: CallbackQuery, state: FSMContext):
-    if not settings.instagram_tov_url:
+    if not settings.apify_token:
         await callback.answer(
             "Instagram extraction is not configured. Use the wizard instead.",
             show_alert=True,
@@ -201,14 +201,14 @@ async def on_instagram_chosen(callback: CallbackQuery, state: FSMContext):
 
 @router.message(ToneOfVoiceStates.waiting_instagram_handle)
 async def on_instagram_handle(message: Message, state: FSMContext):
-    if not settings.instagram_tov_url:
+    if not settings.apify_token:
         await state.clear()
         await message.answer("Instagram extraction is not configured. Send /start to try again.")
         return
 
     await message.answer("Analyzing your Instagram profile… this takes ~1–2 minutes ⏳")
 
-    svc = InstagramTovService(base_url=settings.instagram_tov_url)
+    svc = InstagramTovService(apify_token=settings.apify_token, anthropic_api_key=settings.anthropic_api_key)
     try:
         profile = await svc.analyze(message.text.strip())
     except PrivateProfileError:

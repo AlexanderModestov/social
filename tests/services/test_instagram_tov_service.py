@@ -1,15 +1,18 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 from bot.services.instagram_tov_service import (
     InstagramTovService,
     PrivateProfileError,
     NoPostsError,
     ServiceError,
+    _extract_username,
 )
+
+FAKE_POSTS = [{"caption": "Hello world", "likesCount": 10, "timestamp": "2024-01-01"}]
 
 FAKE_PROFILE = {
     "username": "alex",
-    "posts_analyzed": 10,
+    "posts_analyzed": 1,
     "persona_summary": "Creative",
     "archetype": "Urban nomad",
     "voice_dimensions": [],
@@ -22,93 +25,74 @@ FAKE_PROFILE = {
 }
 
 
+# ── _extract_username ─────────────────────────────────────────────────────────
+
+def test_extract_username_strips_at():
+    assert _extract_username("@alex") == "alex"
+
+
+def test_extract_username_parses_url():
+    assert _extract_username("https://instagram.com/alex/") == "alex"
+
+
+def test_extract_username_plain():
+    assert _extract_username("alex") == "alex"
+
+
+# ── InstagramTovService.analyze ───────────────────────────────────────────────
+
 @pytest.mark.asyncio
 async def test_analyze_returns_profile_on_success():
-    mock_response = MagicMock()
-    mock_response.status_code = 200
-    mock_response.json.return_value = FAKE_PROFILE
-    mock_response.raise_for_status = MagicMock()
-
-    with patch("bot.services.instagram_tov_service.httpx.AsyncClient") as mock_cls:
-        mock_client = AsyncMock()
-        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_client.post = AsyncMock(return_value=mock_response)
-
-        svc = InstagramTovService(base_url="http://localhost:8000")
+    with (
+        patch("bot.services.instagram_tov_service._scrape_posts", return_value=FAKE_POSTS) as mock_scrape,
+        patch("bot.services.instagram_tov_service._generate_tov", return_value=FAKE_PROFILE) as mock_gen,
+    ):
+        svc = InstagramTovService(apify_token="tok", anthropic_api_key="key")
         result = await svc.analyze("alex")
 
+    mock_scrape.assert_called_once_with("alex", "tok")
+    mock_gen.assert_called_once_with("alex", FAKE_POSTS, "key")
     assert result["username"] == "alex"
-    assert result["posts_analyzed"] == 10
 
 
 @pytest.mark.asyncio
-async def test_analyze_raises_private_profile_on_404():
-    mock_response = MagicMock()
-    mock_response.status_code = 404
+async def test_analyze_strips_at_prefix():
+    with (
+        patch("bot.services.instagram_tov_service._scrape_posts", return_value=FAKE_POSTS),
+        patch("bot.services.instagram_tov_service._generate_tov", return_value=FAKE_PROFILE),
+    ):
+        svc = InstagramTovService(apify_token="tok", anthropic_api_key="key")
+        await svc.analyze("@alex")
 
-    import httpx
-    with patch("bot.services.instagram_tov_service.httpx.AsyncClient") as mock_cls:
-        mock_client = AsyncMock()
-        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_client.post = AsyncMock(
-            side_effect=httpx.HTTPStatusError("not found", request=MagicMock(), response=mock_response)
-        )
 
-        svc = InstagramTovService(base_url="http://localhost:8000")
-        with pytest.raises(PrivateProfileError):
+@pytest.mark.asyncio
+async def test_analyze_raises_no_posts_on_empty_result():
+    with patch("bot.services.instagram_tov_service._scrape_posts", return_value=[]):
+        svc = InstagramTovService(apify_token="tok", anthropic_api_key="key")
+        with pytest.raises(NoPostsError):
             await svc.analyze("private_user")
 
 
 @pytest.mark.asyncio
-async def test_analyze_raises_no_posts_on_404_with_no_posts_message():
-    mock_response = MagicMock()
-    mock_response.status_code = 404
-    mock_response.json.return_value = {"detail": "No posts found"}
-
-    import httpx
-    with patch("bot.services.instagram_tov_service.httpx.AsyncClient") as mock_cls:
-        mock_client = AsyncMock()
-        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_client.post = AsyncMock(
-            side_effect=httpx.HTTPStatusError("not found", request=MagicMock(), response=mock_response)
-        )
-
-        svc = InstagramTovService(base_url="http://localhost:8000")
-        with pytest.raises(NoPostsError):
-            await svc.analyze("empty_user")
-
-
-@pytest.mark.asyncio
-async def test_analyze_raises_service_error_on_502():
-    mock_response = MagicMock()
-    mock_response.status_code = 502
-
-    import httpx
-    with patch("bot.services.instagram_tov_service.httpx.AsyncClient") as mock_cls:
-        mock_client = AsyncMock()
-        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_client.post = AsyncMock(
-            side_effect=httpx.HTTPStatusError("bad gateway", request=MagicMock(), response=mock_response)
-        )
-
-        svc = InstagramTovService(base_url="http://localhost:8000")
+async def test_analyze_raises_service_error_on_scrape_failure():
+    with patch(
+        "bot.services.instagram_tov_service._scrape_posts",
+        side_effect=RuntimeError("Apify failed"),
+    ):
+        svc = InstagramTovService(apify_token="tok", anthropic_api_key="key")
         with pytest.raises(ServiceError):
             await svc.analyze("alex")
 
 
 @pytest.mark.asyncio
-async def test_analyze_raises_service_error_on_connect_error():
-    import httpx
-    with patch("bot.services.instagram_tov_service.httpx.AsyncClient") as mock_cls:
-        mock_client = AsyncMock()
-        mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-        mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("refused"))
-
-        svc = InstagramTovService(base_url="http://localhost:8000")
+async def test_analyze_raises_service_error_on_generate_failure():
+    with (
+        patch("bot.services.instagram_tov_service._scrape_posts", return_value=FAKE_POSTS),
+        patch(
+            "bot.services.instagram_tov_service._generate_tov",
+            side_effect=ValueError("bad JSON"),
+        ),
+    ):
+        svc = InstagramTovService(apify_token="tok", anthropic_api_key="key")
         with pytest.raises(ServiceError):
             await svc.analyze("alex")

@@ -24,23 +24,23 @@ def test_settings_raises_on_missing_env(monkeypatch):
         Settings(_env_file=None)
 
 
-def test_instagram_tov_url_defaults_to_none(monkeypatch):
+def test_apify_token_defaults_to_none(monkeypatch):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
     monkeypatch.setenv("GCP_PROJECT_ID", "p")
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://x:y@localhost/z")
-    monkeypatch.delenv("INSTAGRAM_TOV_URL", raising=False)
+    monkeypatch.delenv("APIFY_TOKEN", raising=False)
 
     settings = Settings(_env_file=None)
-    assert settings.instagram_tov_url is None
+    assert settings.apify_token is None
 
 
-def test_instagram_tov_url_reads_from_env(monkeypatch):
+def test_apify_token_reads_from_env(monkeypatch):
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
     monkeypatch.setenv("GCP_PROJECT_ID", "p")
     monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://x:y@localhost/z")
-    monkeypatch.setenv("INSTAGRAM_TOV_URL", "http://localhost:8000")
+    monkeypatch.setenv("APIFY_TOKEN", "apify_abc123")
 
     settings = Settings(_env_file=None)
-    assert settings.instagram_tov_url == "http://localhost:8000"
+    assert settings.apify_token == "apify_abc123"
