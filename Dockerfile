@@ -18,8 +18,16 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 RUN playwright install chromium
 
+# Cache-bust: Railway injects RAILWAY_GIT_COMMIT_SHA per commit. Referencing it
+# in a layer immediately before `COPY . .` forces that COPY (and everything
+# after) to rebuild on every new commit, so a real code change can never be
+# served from a stale cached layer. Also records the commit into the image.
+ARG RAILWAY_GIT_COMMIT_SHA=local
+RUN echo "Building from commit: ${RAILWAY_GIT_COMMIT_SHA}" > /app/BUILD_COMMIT.txt
+
 COPY . .
 
 ENV PYTHONUNBUFFERED=1
+ENV BUILD_COMMIT=${RAILWAY_GIT_COMMIT_SHA}
 
 CMD ["sh", "-c", "alembic upgrade head && exec python -u -m bot.main"]
