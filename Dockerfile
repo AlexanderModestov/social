@@ -20,4 +20,6 @@ RUN playwright install chromium
 
 COPY . .
 
+ENV PYTHONUNBUFFERED=1
+
 CMD ["sh", "-c", "alembic upgrade head && python -m bot.main"]
