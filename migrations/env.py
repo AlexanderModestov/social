@@ -6,13 +6,12 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 import os
 from bot.db.models import Base
+from bot.db.url import normalize_db_url
 
 config = context.config
-_db_url = os.environ["DATABASE_URL"]
-# Railway supplies postgres:// or postgresql:// — asyncpg needs postgresql+asyncpg://
-_db_url = _db_url.replace("postgres://", "postgresql+asyncpg://", 1)
-_db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-config.set_main_option("sqlalchemy.url", _db_url)
+# Railway supplies postgres:// or postgresql:// (sometimes with libpq-only query
+# params); asyncpg needs postgresql+asyncpg:// and rejects those params.
+config.set_main_option("sqlalchemy.url", normalize_db_url(os.environ["DATABASE_URL"]))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

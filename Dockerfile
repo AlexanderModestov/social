@@ -22,4 +22,4 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["sh", "-c", "alembic upgrade head && python -m bot.main"]
+CMD ["sh", "-c", "alembic upgrade head && exec python -u -m bot.main"]
