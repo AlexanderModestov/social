@@ -22,3 +22,25 @@ def test_settings_raises_on_missing_env(monkeypatch):
         monkeypatch.delenv(key, raising=False)
     with pytest.raises(Exception):
         Settings(_env_file=None)
+
+
+def test_instagram_tov_url_defaults_to_none(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
+    monkeypatch.setenv("GCP_PROJECT_ID", "p")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://x:y@localhost/z")
+    monkeypatch.delenv("INSTAGRAM_TOV_URL", raising=False)
+
+    settings = Settings(_env_file=None)
+    assert settings.instagram_tov_url is None
+
+
+def test_instagram_tov_url_reads_from_env(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
+    monkeypatch.setenv("GCP_PROJECT_ID", "p")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://x:y@localhost/z")
+    monkeypatch.setenv("INSTAGRAM_TOV_URL", "http://localhost:8000")
+
+    settings = Settings(_env_file=None)
+    assert settings.instagram_tov_url == "http://localhost:8000"
