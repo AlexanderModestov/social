@@ -3,6 +3,6 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "alembic upgrade head && echo '=== BOT STARTING ===' && python -u -m bot.main"
+startCommand = "alembic upgrade head && python -u -m bot.main"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3

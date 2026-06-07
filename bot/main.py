@@ -1,18 +1,26 @@
 import asyncio
 import logging
+import sys
+
+print("=== bot.main loading ===", flush=True)
+
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+logger = logging.getLogger(__name__)
+
+print("=== importing handlers ===", flush=True)
 from aiogram import Bot, Dispatcher
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
 from bot.config import settings
 from bot.handlers import start, tone_of_voice, linkedin, tiktok
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+print("=== all imports OK ===", flush=True)
 
 async def main():
+    logger.info("Creating bot...")
     bot = Bot(token=settings.telegram_bot_token)
     dp = Dispatcher(storage=MemoryStorage())
+    logger.info("Bot created, registering routers...")
 
     @dp.errors()
     async def handle_errors(event: ErrorEvent) -> bool:
@@ -28,7 +36,9 @@ async def main():
     dp.include_router(linkedin.router)
     dp.include_router(tiktok.router)
 
+    logger.info("Starting polling...")
     await dp.start_polling(bot, drop_pending_updates=True)
 
 if __name__ == "__main__":
+    print("=== starting asyncio.run(main()) ===", flush=True)
     asyncio.run(main())
