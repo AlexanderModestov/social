@@ -7,6 +7,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
+    ffmpeg \
     curl wget gnupg libnss3 libatk-bridge2.0-0 libdrm2 libxkbcommon0 \
     libgbm1 libasound2 libatspi2.0-0 libxcomposite1 libxdamage1 libxfixes3 \
     libxrandr2 libxss1 libxtst6 fonts-liberation libappindicator3-1 \
