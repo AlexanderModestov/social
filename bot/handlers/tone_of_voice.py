@@ -186,11 +186,10 @@ async def on_regenerate_profile(callback: CallbackQuery, state: FSMContext):
 @router.callback_query(ToneOfVoiceStates.choosing_method, F.data == "tov:instagram")
 async def on_instagram_chosen(callback: CallbackQuery, state: FSMContext):
     if not settings.instagram_tov_url:
-        await callback.message.edit_text(
-            "Instagram extraction is not configured. Please start the wizard instead.",
-            reply_markup=tov_method_keyboard(),
+        await callback.answer(
+            "Instagram extraction is not configured. Use the wizard instead.",
+            show_alert=True,
         )
-        await callback.answer()
         return
     await state.set_state(ToneOfVoiceStates.waiting_instagram_handle)
     await callback.message.edit_text(
