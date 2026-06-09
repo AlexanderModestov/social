@@ -3,6 +3,10 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "echo \"=== BUILD_COMMIT=${BUILD_COMMIT:-unknown} GIT_SHA=${RAILWAY_GIT_COMMIT_SHA:-unknown} ===\" && echo '=== migrations ===' && alembic upgrade head && echo '=== starting bot ===' && exec python -u -m bot.main"
+# TEMPORARY DIAGNOSTIC PROBE — revert to the real startCommand (below) once we
+# confirm Railway runs and captures our container command.
+startCommand = "sh -c 'echo PROBE_ALIVE_1; echo PORT=$PORT; echo DBSET=${DATABASE_URL:+yes}; python --version; which alembic; echo PROBE_DONE; sleep 600'"
+# Real start command (restore this after the probe):
+# startCommand = "echo \"=== BUILD_COMMIT=${BUILD_COMMIT:-unknown} GIT_SHA=${RAILWAY_GIT_COMMIT_SHA:-unknown} ===\" && echo '=== migrations ===' && alembic upgrade head && echo '=== starting bot ===' && exec python -u -m bot.main"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
