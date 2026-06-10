@@ -35,3 +35,19 @@ def test_split_scenes_preserves_multiline_description():
     svc = GeminiService()
     text = "Scene 1: A cat wakes up,\nslowly stretching.\nScene 2: It pounces."
     assert svc._split_scenes(text) == ["A cat wakes up,\nslowly stretching.", "It pounces."]
+
+
+def test_veo_prompt_system_has_duration_and_no_text():
+    svc = GeminiService()
+    sys = svc._veo_prompt_system({"voice": "punchy"})
+    assert "8 second" in sys
+    assert "no" in sys.lower() and "text" in sys.lower()
+    assert "punchy" in sys  # tone profile is injected
+
+
+def test_veo_scenes_system_has_duration_and_no_text():
+    svc = GeminiService()
+    sys = svc._veo_scenes_system({}, max_scenes=3)
+    assert "8 second" in sys
+    assert "text" in sys.lower()
+    assert "3" in sys
