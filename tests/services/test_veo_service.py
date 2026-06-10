@@ -31,6 +31,23 @@ def test_client_is_lazy_and_cached():
     assert hasattr(_get_client, "cache_clear")
 
 
+def test_config_uses_duration_setting():
+    svc = VeoService()
+    cfg = svc._config()
+    assert cfg.duration_seconds == 8
+    assert cfg.aspect_ratio == "9:16"
+
+
+def test_normalize_cmd_forces_1080x1920(tmp_path):
+    svc = VeoService()
+    cmd = svc._normalize_cmd("in.jpg", "out.jpg")
+    assert cmd[0] == "ffmpeg"
+    assert "in.jpg" in cmd and "out.jpg" in cmd
+    vf = cmd[cmd.index("-vf") + 1]
+    assert "1080:1920" in vf
+    assert "crop=1080:1920" in vf
+
+
 def test_build_concat_file_writes_one_line_per_clip(tmp_path):
     svc = VeoService()
     clips = [str(tmp_path / "a.mp4"), str(tmp_path / "b.mp4")]
