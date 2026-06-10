@@ -5,6 +5,7 @@ import tempfile
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message, InlineKeyboardButton, InlineKeyboardMarkup
+from bot.config import settings
 from bot.db.session import async_session_factory
 from bot.db.repository import ToneOfVoiceRepository
 from bot.keyboards.inline import tiktok_subtype_keyboard, video_mode_keyboard, prompt_review_keyboard
@@ -198,7 +199,7 @@ async def on_prompt_edited(message: Message, state: FSMContext):
         return
     data = await state.get_data()
     if data.get("video_mode") == "full":
-        prompts = [p.strip() for p in text.split("\n\n") if p.strip()][:3]
+        prompts = [p.strip() for p in text.split("\n\n") if p.strip()][: settings.veo_max_scenes]
     else:
         prompts = [text]
     await state.update_data(prompts=prompts)

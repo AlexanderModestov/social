@@ -24,6 +24,14 @@ def test_split_scenes_caps_at_three():
     assert len(svc._split_scenes(text)) == 3
 
 
+def test_split_scenes_respects_config_cap(monkeypatch):
+    import bot.services.gemini_service as gs
+    monkeypatch.setattr(gs.settings, "veo_max_scenes", 2, raising=False)
+    svc = GeminiService()
+    text = "\n".join(f"Scene {i}: action {i}" for i in range(1, 6))
+    assert len(svc._split_scenes(text)) == 2
+
+
 def test_split_scenes_fallback_paragraphs():
     svc = GeminiService()
     text = "First shot happens.\n\nSecond shot happens.\n\nThird.\n\nFourth."

@@ -57,7 +57,8 @@ class GeminiService:
             f"Match this tone of voice: {json.dumps(tone_profile)}"
         )
 
-    def _split_scenes(self, text: str, max_scenes: int = 3) -> list[str]:
+    def _split_scenes(self, text: str, max_scenes: int | None = None) -> list[str]:
+        max_scenes = max_scenes or settings.veo_max_scenes
         # Split on the "Scene N:" marker so multi-line descriptions are preserved.
         parts = re.split(r"(?im)^\s*Scene\s+\d+:\s*", text)
         scenes = [p.strip() for p in parts[1:] if p.strip()]
