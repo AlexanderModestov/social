@@ -1,5 +1,7 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
+from bot.config import settings
+
 
 def main_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -55,8 +57,8 @@ def style_words_keyboard(selected: list[str]) -> InlineKeyboardMarkup:
 
 def video_mode_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚡ Quick clip (5–8s)", callback_data="videomode:quick")],
-        [InlineKeyboardButton(text="🎬 Full video (≤3 scenes)", callback_data="videomode:full")],
+        [InlineKeyboardButton(text=f"⚡ Quick clip ({settings.veo_duration_seconds}s)", callback_data="videomode:quick")],
+        [InlineKeyboardButton(text=f"🎬 Full video (≤{settings.veo_max_scenes} scenes)", callback_data="videomode:full")],
     ])
 
 

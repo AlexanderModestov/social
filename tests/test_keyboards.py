@@ -1,4 +1,4 @@
-from bot.keyboards.inline import main_menu_keyboard, platform_keyboard, prompt_review_keyboard, tiktok_subtype_keyboard, tov_method_keyboard
+from bot.keyboards.inline import main_menu_keyboard, platform_keyboard, prompt_review_keyboard, tiktok_subtype_keyboard, tov_method_keyboard, video_mode_keyboard
 
 def test_main_menu_has_two_buttons():
     kb = main_menu_keyboard()
@@ -33,3 +33,12 @@ def test_prompt_review_keyboard_has_accept_refine_edit():
     assert "veo:accept" in callbacks
     assert "veo:refine" in callbacks
     assert "veo:edit" in callbacks
+
+def test_video_mode_keyboard_labels_reflect_settings():
+    from bot.config import settings
+    kb = video_mode_keyboard()
+    labels = [btn.text for row in kb.inline_keyboard for btn in row]
+    callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+    assert any(f"{settings.veo_duration_seconds}s" in l for l in labels)
+    assert any(f"{settings.veo_max_scenes} scenes" in l for l in labels)
+    assert "videomode:quick" in callbacks and "videomode:full" in callbacks
