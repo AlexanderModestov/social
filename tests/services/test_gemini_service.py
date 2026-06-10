@@ -59,3 +59,18 @@ def test_veo_scenes_system_has_duration_and_no_text():
     assert "8 second" in sys
     assert "text" in sys.lower()
     assert "3" in sys
+
+
+def test_refine_system_includes_instruction_and_constraints():
+    svc = GeminiService()
+    sys = svc._refine_system(
+        current_prompts=["A cat naps on a sunny windowsill."],
+        instruction="make it more energetic",
+        tone_profile={"voice": "bold"},
+        mode="quick",
+    )
+    assert "make it more energetic" in sys
+    assert "A cat naps on a sunny windowsill." in sys
+    assert "8 second" in sys
+    assert "text" in sys.lower()       # no-on-screen-text constraint preserved
+    assert "bold" in sys

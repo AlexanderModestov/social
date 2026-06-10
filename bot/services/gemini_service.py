@@ -92,3 +92,36 @@ class GeminiService:
         system_prompt = self._veo_scenes_system(tone_profile, max_scenes)
         text = await self._generate(description, image_paths, system_prompt)
         return self._split_scenes(text, max_scenes)
+
+    def _refine_system(
+        self, current_prompts: list[str], instruction: str, tone_profile: dict, mode: str,
+    ) -> str:
+        dur = settings.veo_duration_seconds
+        joined = "\n\n".join(current_prompts)
+        if mode == "full":
+            fmt = (
+                "Output the full set of scenes in the EXACT format "
+                "'Scene 1: <description>' (one per line)."
+            )
+        else:
+            fmt = "Output ONLY the single revised prompt text, no preamble."
+        return (
+            "You are revising an existing text-to-video prompt for a vertical 9:16 "
+            "TikTok clip. Apply the user's instruction, keeping everything they did "
+            "not ask to change. "
+            f"Each shot is exactly {dur} seconds — keep the action within that time. "
+            f"{self._NO_TEXT} "
+            f"{fmt}\n\n"
+            f"CURRENT PROMPT:\n{joined}\n\n"
+            f"INSTRUCTION:\n{instruction}\n\n"
+            f"Match this tone of voice: {json.dumps(tone_profile)}"
+        )
+
+    async def refine_veo_prompt(
+        self, current_prompts: list[str], instruction: str, tone_profile: dict, mode: str,
+    ) -> list[str]:
+        system_prompt = self._refine_system(current_prompts, instruction, tone_profile, mode)
+        text = await self._generate(instruction, [], system_prompt)
+        if mode == "full":
+            return self._split_scenes(text)
+        return [text.strip()]
