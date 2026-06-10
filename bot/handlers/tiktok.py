@@ -206,6 +206,45 @@ async def on_prompt_edited(message: Message, state: FSMContext):
     await _run_veo(message, state)
 
 
+@router.callback_query(TikTokStates.reviewing_prompt, F.data == "veo:refine")
+async def on_prompt_refine(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(TikTokStates.refining_prompt)
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer(
+        "What should I change? e.g. \"more energetic, sunset lighting, slower camera\""
+    )
+    await callback.answer()
+
+
+@router.message(TikTokStates.refining_prompt)
+async def on_prompt_refine_instruction(message: Message, state: FSMContext):
+    instruction = (message.text or "").strip()
+    if not instruction or instruction.startswith("/"):
+        await message.answer("Send a plain-language instruction (not a command).")
+        return
+    data = await state.get_data()
+
+    async with async_session_factory() as session:
+        tov = await ToneOfVoiceRepository(session).get_active(message.from_user.id)
+    tone_profile = tov.profile_json if tov else {}
+
+    gemini = GeminiService()
+    try:
+        new_prompts = await gemini.refine_veo_prompt(
+            current_prompts=data.get("prompts", []),
+            instruction=instruction,
+            tone_profile=tone_profile,
+            mode=data.get("video_mode", "quick"),
+        )
+    except Exception as e:
+        await _show_prompt_review(message, state)
+        await message.answer(f"Couldn't refine that: {e}")
+        return
+
+    await state.update_data(prompts=new_prompts)
+    await _show_prompt_review(message, state)
+
+
 @router.callback_query(TikTokStates.reviewing_prompt, F.data == "veo:accept")
 async def on_prompt_accept(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_reply_markup(reply_markup=None)
@@ -217,6 +256,20 @@ def _cleanup_photos(image_paths: list[str]):
     for p in image_paths:
         if os.path.exists(p):
             os.unlink(p)
+
+
+async def _show_prompt_review(message: Message, state: FSMContext):
+    data = await state.get_data()
+    prompts = data.get("prompts", [])
+    if data.get("video_mode") == "full":
+        preview = "\n".join(f"Scene {i+1}: {p}" for i, p in enumerate(prompts))
+    else:
+        preview = prompts[0] if prompts else ""
+    await state.set_state(TikTokStates.reviewing_prompt)
+    await message.answer(
+        f"Here's the video prompt:\n\n{preview}\n\nAccept it, refine, or rewrite?",
+        reply_markup=prompt_review_keyboard(),
+    )
 
 
 async def _run_veo(message: Message, state: FSMContext):
