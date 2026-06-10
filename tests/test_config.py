@@ -44,3 +44,29 @@ def test_apify_token_reads_from_env(monkeypatch):
 
     settings = Settings(_env_file=None)
     assert settings.apify_token == "apify_abc123"
+
+
+def test_veo_settings_default(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
+    monkeypatch.setenv("GCP_PROJECT_ID", "p")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://x:y@localhost/z")
+    monkeypatch.delenv("VEO_DURATION_SECONDS", raising=False)
+    monkeypatch.delenv("VEO_MAX_SCENES", raising=False)
+
+    settings = Settings(_env_file=None)
+    assert settings.veo_duration_seconds == 8
+    assert settings.veo_max_scenes == 3
+
+
+def test_veo_settings_read_from_env(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "t")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "a")
+    monkeypatch.setenv("GCP_PROJECT_ID", "p")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://x:y@localhost/z")
+    monkeypatch.setenv("VEO_DURATION_SECONDS", "6")
+    monkeypatch.setenv("VEO_MAX_SCENES", "5")
+
+    settings = Settings(_env_file=None)
+    assert settings.veo_duration_seconds == 6
+    assert settings.veo_max_scenes == 5

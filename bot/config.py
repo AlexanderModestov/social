@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     gcp_location: str = "us-central1"
     veo_model: str = "veo-3.1-generate-001"
     gcs_output_bucket: Optional[str] = None
+    veo_duration_seconds: int = 8
+    veo_max_scenes: int = 3
     apify_token: Optional[str] = None
     google_application_credentials_json: Optional[str] = None
     database_url: str
