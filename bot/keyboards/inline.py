@@ -62,8 +62,9 @@ def video_mode_keyboard() -> InlineKeyboardMarkup:
 
 def prompt_review_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Accept", callback_data="veo:accept"),
-         InlineKeyboardButton(text="✏️ Edit", callback_data="veo:edit")],
+        [InlineKeyboardButton(text="✅ Accept", callback_data="veo:accept")],
+        [InlineKeyboardButton(text="💬 Refine with instructions", callback_data="veo:refine")],
+        [InlineKeyboardButton(text="✏️ Rewrite manually", callback_data="veo:edit")],
     ])
 
 

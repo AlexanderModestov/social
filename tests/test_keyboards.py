@@ -1,4 +1,4 @@
-from bot.keyboards.inline import main_menu_keyboard, platform_keyboard, tiktok_subtype_keyboard, tov_method_keyboard
+from bot.keyboards.inline import main_menu_keyboard, platform_keyboard, prompt_review_keyboard, tiktok_subtype_keyboard, tov_method_keyboard
 
 def test_main_menu_has_two_buttons():
     kb = main_menu_keyboard()
@@ -26,3 +26,10 @@ def test_tov_method_keyboard_callback_data():
     callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
     assert "tov:wizard" in callbacks
     assert "tov:instagram" in callbacks
+
+def test_prompt_review_keyboard_has_accept_refine_edit():
+    kb = prompt_review_keyboard()
+    callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+    assert "veo:accept" in callbacks
+    assert "veo:refine" in callbacks
+    assert "veo:edit" in callbacks

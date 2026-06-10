@@ -22,4 +22,5 @@ class TikTokStates(StatesGroup):
     choosing_video_mode = State()
     reviewing_prompt = State()
     editing_prompt = State()
+    refining_prompt = State()
     generating_veo = State()
