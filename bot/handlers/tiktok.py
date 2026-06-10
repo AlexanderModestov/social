@@ -159,13 +159,11 @@ async def on_materials_done(message: Message, state: FSMContext):
                 data.get("description", ""), image_paths, tone_profile,
             )
             await state.update_data(prompts=scenes)
-            preview = "\n".join(f"Scene {i+1}: {s}" for i, s in enumerate(scenes))
         else:
             prompt = await gemini.write_veo_prompt(
                 data.get("description", ""), image_paths, tone_profile,
             )
             await state.update_data(prompts=[prompt])
-            preview = prompt
     except Exception as e:
         for p in image_paths:
             if os.path.exists(p):
@@ -174,11 +172,7 @@ async def on_materials_done(message: Message, state: FSMContext):
         await message.answer(f"Couldn't write the prompt: {e}")
         return
 
-    await state.set_state(TikTokStates.reviewing_prompt)
-    await message.answer(
-        f"Here's the video prompt:\n\n{preview}\n\nAccept it or edit?",
-        reply_markup=prompt_review_keyboard(),
-    )
+    await _show_prompt_review(message, state)
 
 
 @router.callback_query(TikTokStates.reviewing_prompt, F.data == "veo:edit")
