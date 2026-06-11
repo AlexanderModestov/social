@@ -3,6 +3,6 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "echo \"=== BUILD_COMMIT=${BUILD_COMMIT:-unknown} GIT_SHA=${RAILWAY_GIT_COMMIT_SHA:-unknown} ===\" && echo '=== migrations ===' && alembic upgrade head && echo '=== starting bot ===' && exec python -u -m bot.main"
+startCommand = "sh start.sh"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
