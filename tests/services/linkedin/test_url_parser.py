@@ -17,6 +17,17 @@ def test_share_post_url():
     )
     assert p["post_urn"] == "urn:li:share:7449499107418669056"
     assert p["url_type"] == "post"
+    # post_activity_id is populated only for the activity kind
+    assert p["post_activity_id"] is None
+
+
+def test_ugcpost_url():
+    p = parse_linkedin_url(
+        "https://www.linkedin.com/feed/update/urn:li:ugcPost:7447000000000000000"
+    )
+    assert p["post_urn"] == "urn:li:ugcPost:7447000000000000000"
+    assert p["url_type"] == "post"
+    assert p["post_activity_id"] is None
 
 
 def test_comment_url_extracts_post_and_comment():
