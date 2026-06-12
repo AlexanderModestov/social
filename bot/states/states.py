@@ -29,6 +29,9 @@ class ReplyHandlerStates(StatesGroup):
 class HookExtractorStates(StatesGroup):
     waiting_input = State()
 
+class EngagementStates(StatesGroup):
+    waiting_input = State()
+
 class TikTokStates(StatesGroup):
     waiting_subtype = State()
     waiting_product_url = State()

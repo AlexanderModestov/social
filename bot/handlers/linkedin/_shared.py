@@ -25,6 +25,18 @@ async def resolve_source(text: str) -> tuple[str, str]:
     return "", "empty"
 
 
+async def fetch_engagers(post_url: str, max_items: int = 50):
+    """Return a list of engagers for a post via Apify, or None if no token / failure."""
+    if not settings.apify_token:
+        return None
+    try:
+        from bot.services.linkedin.apify_client import ApifyClient
+        client = ApifyClient(token=settings.apify_token)
+        return await asyncio.to_thread(client.fetch_post_engagers, post_url=post_url, max_items=max_items)
+    except Exception:
+        return None
+
+
 async def get_active_tov(user_id: int) -> dict:
     async with async_session_factory() as session:
         tov = await ToneOfVoiceRepository(session).get_active(user_id)
