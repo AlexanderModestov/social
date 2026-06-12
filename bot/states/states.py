@@ -23,6 +23,9 @@ class PostAuditStates(StatesGroup):
 class CommentDrafterStates(StatesGroup):
     waiting_input = State()
 
+class ReplyHandlerStates(StatesGroup):
+    waiting_input = State()
+
 class TikTokStates(StatesGroup):
     waiting_subtype = State()
     waiting_product_url = State()
