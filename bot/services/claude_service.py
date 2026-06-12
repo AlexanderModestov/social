@@ -51,22 +51,20 @@ class ClaudeService:
         previous_post: str | None = None,
         feedback: str | None = None,
     ) -> str:
-        system_prompt = _load_skill("linkedin/system_prompt.txt")
-        context_parts = [f"USER TONE OF VOICE:\n{json.dumps(tone_profile, indent=2)}"]
-        if scraped_content:
-            context_parts.append("REFERENCE ARTICLES:\n" + "\n\n---\n\n".join(scraped_content))
-        if notes:
-            context_parts.append(f"USER NOTES:\n{notes}")
-        if previous_post and feedback:
-            context_parts.append(f"PREVIOUS POST:\n{previous_post}\n\nFEEDBACK:\n{feedback}")
+        # Delegate to LinkedInSkillService so there's a single generation code path.
+        # Local import avoids any circular-import risk.
+        from bot.services.linkedin.skill_service import LinkedInSkillService
 
-        response = await self.client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2048,
-            system=system_prompt,
-            messages=[{"role": "user", "content": "\n\n".join(context_parts)}],
+        return await LinkedInSkillService().run(
+            "post-writer",
+            user_inputs={
+                "notes": notes,
+                "reference_articles": "\n\n---\n\n".join(scraped_content),
+            },
+            tov=tone_profile,
+            previous=previous_post,
+            feedback=feedback,
         )
-        return response.content[0].text
 
     async def generate_tiktok_caption(self, url: str, page_content: str, tone_profile: dict) -> str:
         response = await self.client.messages.create(

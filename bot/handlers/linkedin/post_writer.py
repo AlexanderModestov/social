@@ -1,12 +1,11 @@
-# bot/handlers/linkedin.py
+# bot/handlers/linkedin/post_writer.py
 import re
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 from bot.db.session import async_session_factory
-from bot.db.repository import ToneOfVoiceRepository, PostHistoryRepository
-from bot.keyboards.inline import post_actions_keyboard
-from bot.services.claude_service import ClaudeService
+from bot.db.repository import PostHistoryRepository
+from bot.handlers.linkedin._shared import run_skill, approval_card
 from bot.services.scraper_service import ScraperService
 from bot.states.states import LinkedInStates
 
@@ -46,41 +45,36 @@ async def on_done(message: Message, state: FSMContext):
 
     await message.answer("Fetching content and generating your post...")
 
-    async with async_session_factory() as session:
-        tov = await ToneOfVoiceRepository(session).get_active(message.from_user.id)
-
-    tone_profile = tov.profile_json if tov else {}
-
-    scraper = ScraperService()
-    scraped = await scraper.scrape_urls(data.get("links", []))
-    notes_text = "\n\n".join(data.get("notes", []))
-
-    claude = ClaudeService()
-    post = await claude.generate_linkedin_post(
-        notes=notes_text,
-        scraped_content=scraped,
-        tone_profile=tone_profile,
+    scraped = await ScraperService().scrape_urls(data.get("links", []))
+    post = await run_skill(
+        "post-writer",
+        user_inputs={
+            "notes": "\n\n".join(data.get("notes", [])),
+            "reference_articles": "\n\n---\n\n".join(scraped),
+        },
+        user_id=message.from_user.id,
     )
 
     await state.update_data(generated_post=post)
     await state.set_state(LinkedInStates.editing)
-    await message.answer(post, reply_markup=post_actions_keyboard())
+    card = approval_card(post)
+    await message.answer(card["text"], reply_markup=card["reply_markup"])
 
 @router.callback_query(LinkedInStates.editing, F.data == "post:regenerate")
 async def on_regenerate(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    async with async_session_factory() as session:
-        tov = await ToneOfVoiceRepository(session).get_active(callback.from_user.id)
-    scraper = ScraperService()
-    scraped = await scraper.scrape_urls(data.get("links", []))
-    claude = ClaudeService()
-    post = await claude.generate_linkedin_post(
-        notes="\n\n".join(data.get("notes", [])),
-        scraped_content=scraped,
-        tone_profile=tov.profile_json if tov else {},
+    scraped = await ScraperService().scrape_urls(data.get("links", []))
+    post = await run_skill(
+        "post-writer",
+        user_inputs={
+            "notes": "\n\n".join(data.get("notes", [])),
+            "reference_articles": "\n\n---\n\n".join(scraped),
+        },
+        user_id=callback.from_user.id,
     )
     await state.update_data(generated_post=post)
-    await callback.message.edit_text(post, reply_markup=post_actions_keyboard())
+    card = approval_card(post)
+    await callback.message.edit_text(card["text"], reply_markup=card["reply_markup"])
     await callback.answer()
 
 @router.callback_query(LinkedInStates.editing, F.data == "post:edit")
@@ -91,20 +85,20 @@ async def on_edit(callback: CallbackQuery, state: FSMContext):
 @router.message(LinkedInStates.editing)
 async def on_edit_feedback(message: Message, state: FSMContext):
     data = await state.get_data()
-    async with async_session_factory() as session:
-        tov = await ToneOfVoiceRepository(session).get_active(message.from_user.id)
-    scraper = ScraperService()
-    scraped = await scraper.scrape_urls(data.get("links", []))
-    claude = ClaudeService()
-    post = await claude.generate_linkedin_post(
-        notes="\n\n".join(data.get("notes", [])),
-        scraped_content=scraped,
-        tone_profile=tov.profile_json if tov else {},
-        previous_post=data.get("generated_post"),
+    scraped = await ScraperService().scrape_urls(data.get("links", []))
+    post = await run_skill(
+        "post-writer",
+        user_inputs={
+            "notes": "\n\n".join(data.get("notes", [])),
+            "reference_articles": "\n\n---\n\n".join(scraped),
+        },
+        user_id=message.from_user.id,
+        previous=data.get("generated_post"),
         feedback=message.text,
     )
     await state.update_data(generated_post=post)
-    await message.answer(post, reply_markup=post_actions_keyboard())
+    card = approval_card(post)
+    await message.answer(card["text"], reply_markup=card["reply_markup"])
 
 @router.callback_query(LinkedInStates.editing, F.data == "post:save")
 async def on_save(callback: CallbackQuery, state: FSMContext):
