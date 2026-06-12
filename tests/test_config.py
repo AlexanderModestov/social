@@ -1,5 +1,5 @@
 import pytest
-from bot.config import Settings
+from bot.config import Settings, settings
 
 
 def test_settings_loads_from_env(monkeypatch):
@@ -44,3 +44,8 @@ def test_apify_token_reads_from_env(monkeypatch):
 
     settings = Settings(_env_file=None)
     assert settings.apify_token == "apify_abc123"
+
+
+def test_publora_settings_optional_and_unset_by_default():
+    assert settings.publora_api_key is None
+    assert settings.linkedin_platform_id is None

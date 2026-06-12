@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     veo_model: str = "veo-3.1-generate-001"
     gcs_output_bucket: Optional[str] = None
     apify_token: Optional[str] = None
+    publora_api_key: Optional[str] = None
+    linkedin_platform_id: Optional[str] = None
     google_application_credentials_json: Optional[str] = None
     database_url: str
 
