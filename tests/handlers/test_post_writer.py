@@ -84,3 +84,20 @@ async def test_done_routes_through_run_skill():
     )
     assert "DRAFT" in sent
     assert state.state == LinkedInStates.editing
+
+
+@pytest.mark.asyncio
+async def test_publish_sends_manual_message():
+    state = FakeFSMContext({"generated_post": "MY POST"})
+    callback = FakeCallback(data="post:publish")
+
+    publish_mock = MagicMock(return_value={"mode": "manual", "message": "COPY THIS: MY POST"})
+
+    with patch.object(post_writer, "publish", publish_mock):
+        await post_writer.on_publish(callback, state)
+
+    publish_mock.assert_called_once_with(
+        "post", "MY POST", "https://www.linkedin.com/post/new/"
+    )
+    callback.message.answer.assert_awaited_once_with("COPY THIS: MY POST")
+    callback.answer.assert_awaited_once()

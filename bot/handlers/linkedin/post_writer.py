@@ -1,4 +1,5 @@
 # bot/handlers/linkedin/post_writer.py
+import asyncio
 import re
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
@@ -6,6 +7,7 @@ from aiogram.types import CallbackQuery, Message
 from bot.db.session import async_session_factory
 from bot.db.repository import PostHistoryRepository
 from bot.handlers.linkedin._shared import run_skill, approval_card
+from bot.services.linkedin import publish
 from bot.services.scraper_service import ScraperService
 from bot.states.states import LinkedInStates
 
@@ -99,6 +101,16 @@ async def on_edit_feedback(message: Message, state: FSMContext):
     await state.update_data(generated_post=post)
     card = approval_card(post)
     await message.answer(card["text"], reply_markup=card["reply_markup"])
+
+@router.callback_query(LinkedInStates.editing, F.data == "post:publish")
+async def on_publish(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    result = await asyncio.to_thread(
+        publish, "post", data["generated_post"],
+        "https://www.linkedin.com/post/new/",
+    )
+    await callback.message.answer(result["message"])
+    await callback.answer()
 
 @router.callback_query(LinkedInStates.editing, F.data == "post:save")
 async def on_save(callback: CallbackQuery, state: FSMContext):

@@ -42,6 +42,7 @@ def post_actions_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🔄 Regenerate", callback_data="post:regenerate"),
          InlineKeyboardButton(text="✏️ Edit", callback_data="post:edit")],
         [InlineKeyboardButton(text="💾 Save", callback_data="post:save")],
+        [InlineKeyboardButton(text="🚀 Publish", callback_data="post:publish")],
     ])
 
 

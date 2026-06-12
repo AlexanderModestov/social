@@ -30,6 +30,15 @@ def test_tov_method_keyboard_callback_data():
 from bot.keyboards.inline import linkedin_menu_keyboard
 
 
+def test_post_actions_keyboard_has_publish():
+    from bot.keyboards.inline import post_actions_keyboard
+    data = [b.callback_data for row in post_actions_keyboard().inline_keyboard for b in row]
+    assert "post:publish" in data
+    # existing actions still present
+    for cb in ("post:regenerate", "post:edit", "post:save"):
+        assert cb in data
+
+
 def test_linkedin_menu_has_all_skills():
     kb = linkedin_menu_keyboard()
     data = [b.callback_data for row in kb.inline_keyboard for b in row]
