@@ -15,6 +15,21 @@ def platform_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def linkedin_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✍️ Write post", callback_data="li:post-writer")],
+        [InlineKeyboardButton(text="💬 Draft comment", callback_data="li:comment-drafter"),
+         InlineKeyboardButton(text="↩️ Draft reply", callback_data="li:reply-handler")],
+        [InlineKeyboardButton(text="🧹 Humanize", callback_data="li:humanizer"),
+         InlineKeyboardButton(text="🔎 Audit", callback_data="li:post-audit")],
+        [InlineKeyboardButton(text="🪝 Hook extractor", callback_data="li:hook-extractor"),
+         InlineKeyboardButton(text="📊 Engagement", callback_data="li:engagement-monitor")],
+        [InlineKeyboardButton(text="👤 Profile", callback_data="li:profile-optimizer")],
+        [InlineKeyboardButton(text="🗓 7-day plan", callback_data="li:content-planner"),
+         InlineKeyboardButton(text="🤝 Advocacy", callback_data="li:employee-advocacy")],
+    ])
+
+
 def tiktok_subtype_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📱 Product demo", callback_data="tiktok:product_demo")],

@@ -13,7 +13,7 @@ from bot.states.states import LinkedInStates
 router = Router()
 URL_REGEX = re.compile(r"https?://\S+")
 
-@router.callback_query(lambda c: c.data == "platform:linkedin")
+@router.callback_query(lambda c: c.data == "li:post-writer")
 async def start_linkedin(callback: CallbackQuery, state: FSMContext):
     await state.set_state(LinkedInStates.collecting_inputs)
     await state.update_data(links=[], notes=[], generated_post=None)
