@@ -20,6 +20,9 @@ class HumanizerStates(StatesGroup):
 class PostAuditStates(StatesGroup):
     waiting_input = State()
 
+class CommentDrafterStates(StatesGroup):
+    waiting_input = State()
+
 class TikTokStates(StatesGroup):
     waiting_subtype = State()
     waiting_product_url = State()
