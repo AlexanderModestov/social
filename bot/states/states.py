@@ -35,6 +35,9 @@ class EngagementStates(StatesGroup):
 class ProfileOptimizerStates(StatesGroup):
     waiting_input = State()
 
+class EmployeeAdvocacyStates(StatesGroup):
+    waiting_input = State()
+
 class ContentPlannerStates(StatesGroup):
     waiting_role = State()
     waiting_audience = State()
