@@ -32,6 +32,18 @@ async def test_resolve_source_url_without_token_needs_paste(monkeypatch):
     assert text == ""
 
 
+@pytest.mark.asyncio
+async def test_resolve_source_apify_empty_falls_through_to_needs_paste(monkeypatch):
+    monkeypatch.setattr(_shared.settings, "apify_token", "tok", raising=False)
+    with patch.object(_shared, "fetch_post", return_value=None) as fp:
+        text, used = await _shared.resolve_source(
+            "https://www.linkedin.com/posts/x-activity-7448808898326654978-AA"
+        )
+    assert used == "needs_paste"
+    assert text == ""
+    fp.assert_called_once()
+
+
 def test_approval_card_has_charcount_and_keyboard():
     card = _shared.approval_card("Hello world")
     assert "11 chars" in card["text"]
