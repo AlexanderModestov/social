@@ -32,6 +32,9 @@ class HookExtractorStates(StatesGroup):
 class EngagementStates(StatesGroup):
     waiting_input = State()
 
+class ProfileOptimizerStates(StatesGroup):
+    waiting_input = State()
+
 class TikTokStates(StatesGroup):
     waiting_subtype = State()
     waiting_product_url = State()
