@@ -46,6 +46,21 @@ def post_actions_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def linkedin_report_keyboard(extra_rows=None) -> InlineKeyboardMarkup:
+    rows = list(extra_rows or [])
+    rows.append([InlineKeyboardButton(text="💾 Save", callback_data="skill:save")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def humanizer_modes_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Strict", callback_data="hmz:strict"),
+         InlineKeyboardButton(text="Aesthetic", callback_data="hmz:aesthetic"),
+         InlineKeyboardButton(text="Forensic", callback_data="hmz:forensic")],
+        [InlineKeyboardButton(text="💾 Save", callback_data="skill:save")],
+    ])
+
+
 def tone_of_voice_confirm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Save", callback_data="tov:save"),

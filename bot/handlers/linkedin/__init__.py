@@ -1,3 +1,3 @@
-from . import menu, post_writer  # more skill routers added in later tasks
+from . import menu, post_writer, common, humanizer  # more skill routers added in later tasks
 
-routers = [menu.router, post_writer.router]
+routers = [menu.router, post_writer.router, common.router, humanizer.router]

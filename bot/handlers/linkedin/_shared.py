@@ -42,6 +42,13 @@ def approval_card(draft: str) -> dict:
     return {"text": body, "reply_markup": post_actions_keyboard()}
 
 
+def report_card(text: str, extra_rows: list | None = None) -> dict:
+    """A generic result card for non-draft skills: the text plus a Save button
+    (callback 'skill:save'), with optional extra button rows prepended."""
+    from bot.keyboards.inline import linkedin_report_keyboard
+    return {"text": text, "reply_markup": linkedin_report_keyboard(extra_rows)}
+
+
 async def save_history(user_id, skill, inputs, output):
     async with async_session_factory() as session:
         await PostHistoryRepository(session).create(

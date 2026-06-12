@@ -13,6 +13,10 @@ class LinkedInStates(StatesGroup):
     collecting_inputs = State()
     editing = State()
 
+class HumanizerStates(StatesGroup):
+    waiting_input = State()
+    reviewing = State()
+
 class TikTokStates(StatesGroup):
     waiting_subtype = State()
     waiting_product_url = State()

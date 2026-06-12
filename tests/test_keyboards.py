@@ -39,6 +39,13 @@ def test_post_actions_keyboard_has_publish():
         assert cb in data
 
 
+def test_humanizer_modes_keyboard_has_modes_and_save():
+    from bot.keyboards.inline import humanizer_modes_keyboard
+    data = [b.callback_data for row in humanizer_modes_keyboard().inline_keyboard for b in row]
+    for cb in ("hmz:strict", "hmz:aesthetic", "hmz:forensic", "skill:save"):
+        assert cb in data
+
+
 def test_linkedin_menu_has_all_skills():
     kb = linkedin_menu_keyboard()
     data = [b.callback_data for row in kb.inline_keyboard for b in row]
