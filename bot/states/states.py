@@ -35,6 +35,10 @@ class EngagementStates(StatesGroup):
 class ProfileOptimizerStates(StatesGroup):
     waiting_input = State()
 
+class ContentPlannerStates(StatesGroup):
+    waiting_role = State()
+    waiting_audience = State()
+
 class TikTokStates(StatesGroup):
     waiting_subtype = State()
     waiting_product_url = State()
