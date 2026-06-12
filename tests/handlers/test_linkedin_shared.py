@@ -48,3 +48,15 @@ def test_approval_card_has_charcount_and_keyboard():
     card = _shared.approval_card("Hello world")
     assert "11 chars" in card["text"]
     assert card["reply_markup"] is not None
+
+
+def test_report_card_has_save_button_and_extra_rows():
+    from aiogram.types import InlineKeyboardButton
+    extra = [[InlineKeyboardButton(text="X", callback_data="x:y")]]
+    card = _shared.report_card("hello", extra_rows=extra)
+    assert card["text"] == "hello"
+    data = [b.callback_data for row in card["reply_markup"].inline_keyboard for b in row]
+    assert "x:y" in data          # extra row present
+    assert "skill:save" in data   # save button appended
+    # extra row comes before save
+    assert data.index("x:y") < data.index("skill:save")
