@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, JSON, String, func
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Integer, JSON, String, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -20,10 +20,12 @@ class User(Base):
 
 class ToneOfVoice(Base):
     __tablename__ = "tone_of_voices"
+    __table_args__ = (UniqueConstraint("user_id", "channel", name="uq_tov_user_channel"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"))
     name: Mapped[str] = mapped_column(String(128))
+    channel: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
     profile_json: Mapped[dict] = mapped_column(JSON)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

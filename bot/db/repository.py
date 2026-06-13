@@ -1,4 +1,4 @@
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.db.models import User, ToneOfVoice, PostHistory
 
@@ -20,28 +20,41 @@ class ToneOfVoiceRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_active(self, user_id: int) -> ToneOfVoice | None:
+    async def get_for_channel(self, user_id: int, channel: str) -> ToneOfVoice | None:
         result = await self.session.execute(
-            select(ToneOfVoice)
-            .where(ToneOfVoice.user_id == user_id, ToneOfVoice.is_active == True)
-            .order_by(ToneOfVoice.updated_at.desc())
-            .limit(1)
+            select(ToneOfVoice).where(
+                ToneOfVoice.user_id == user_id,
+                ToneOfVoice.channel == channel,
+            )
         )
         return result.scalar_one_or_none()
 
-    async def deactivate_all(self, user_id: int) -> None:
-        await self.session.execute(
-            update(ToneOfVoice)
-            .where(ToneOfVoice.user_id == user_id)
-            .values(is_active=False)
+    async def get_channels_with_tov(self, user_id: int) -> set[str]:
+        result = await self.session.execute(
+            select(ToneOfVoice.channel).where(ToneOfVoice.user_id == user_id)
         )
+        return set(result.scalars().all())
 
-    async def create(self, user_id: int, name: str, profile_json: dict) -> ToneOfVoice:
-        await self.deactivate_all(user_id)
-        tov = ToneOfVoice(user_id=user_id, name=name, profile_json=profile_json, is_active=True)
+    async def upsert(self, user_id: int, channel: str, name: str, profile_json: dict) -> ToneOfVoice:
+        existing = await self.get_for_channel(user_id, channel)
+        if existing is not None:
+            existing.name = name
+            existing.profile_json = profile_json
+            await self.session.flush()
+            return existing
+        tov = ToneOfVoice(
+            user_id=user_id, channel=channel, name=name,
+            profile_json=profile_json, is_active=True,
+        )
         self.session.add(tov)
         await self.session.flush()
         return tov
+
+    async def delete(self, user_id: int, channel: str) -> None:
+        existing = await self.get_for_channel(user_id, channel)
+        if existing is not None:
+            await self.session.delete(existing)
+            await self.session.flush()
 
 
 class PostHistoryRepository:
