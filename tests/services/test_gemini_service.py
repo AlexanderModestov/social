@@ -47,12 +47,16 @@ def test_split_scenes_preserves_multiline_description():
     assert svc._split_scenes(text) == ["A cat wakes up,\nslowly stretching.", "It pounces."]
 
 
-def test_veo_prompt_system_has_duration_and_no_text():
+def test_veo_prompt_system_is_idea_anchored_and_actionforward():
     svc = GeminiService()
     sys = svc._veo_prompt_system({"voice": "punchy"})
-    assert "8 second" in sys
-    assert "no" in sys.lower() and "text" in sys.lower()
-    assert "punchy" in sys  # tone profile is injected
+    assert "CORE IDEA" in sys                 # anchors the user's idea
+    assert "[00:00" in sys                    # timestamp-beat instruction
+    assert "before atmosphere" in sys         # action/subject before mood
+    assert "quotation marks" in sys           # scripted dialogue guidance
+    assert "8 second" in sys                   # duration
+    assert "text" in sys.lower()              # no-on-screen-text retained
+    assert "punchy" in sys                    # tone injected
 
 
 def test_veo_scenes_system_has_duration_and_no_text():

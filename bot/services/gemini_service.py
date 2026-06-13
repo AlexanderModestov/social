@@ -26,18 +26,31 @@ class GeminiService:
         "of any kind."
     )
 
+    _CORE_SPEC = (
+        "Anchor on the user's CORE IDEA: identify the central action/event/message the "
+        "user described and keep it the focus — every detail you add must serve that "
+        "idea, never replace it. "
+        "Write the prompt as timestamped beats that span the FULL duration, e.g. "
+        "[00:00-00:03] ... [00:03-00:06] ..., choosing 2-4 beats from the idea's pacing; "
+        "each beat must be performable within its seconds. "
+        "For every beat cover, IN THIS PRIORITY ORDER: subject (who + appearance), "
+        "concrete ACTION (what they physically do), then cinematography (shot + camera "
+        "move), context, and only then atmosphere/lighting — put action and subject "
+        "before atmosphere so mood never crowds out what actually happens. "
+        "If the idea involves people speaking, include short spoken lines in quotation "
+        "marks in the user's own language with a delivery note (e.g. a woman says, "
+        "excited, \"...\"); keep each line short enough to be spoken within its beat. "
+        "Add SFX: or Ambient noise: directives only where they serve the idea. "
+    )
+
     def _veo_prompt_system(self, tone_profile: dict) -> str:
         dur = settings.veo_duration_seconds
         return (
-            "You are a video director writing a prompt for a text-to-video model. "
-            "Turn the user's idea into ONE vivid, cinematic shot description for a "
-            "vertical 9:16 TikTok clip. "
-            f"This clip is exactly {dur} seconds long: describe only ONE continuous "
-            f"action that realistically fits in {dur} seconds of screen time — do "
-            "not pack a longer story into one shot. Cover subject, setting, camera "
-            "movement, lighting, and mood in 2-4 sentences. "
+            "You are a video director writing a prompt for a text-to-video model, for "
+            f"ONE vertical 9:16 TikTok clip that is exactly {dur} seconds long. "
+            f"{self._CORE_SPEC}"
             f"{self._NO_TEXT} "
-            "Output ONLY the prompt text, no preamble. "
+            "Output ONLY the prompt text (the beats), no preamble. "
             f"Match this tone of voice: {json.dumps(tone_profile)}"
         )
 
