@@ -174,6 +174,14 @@ class ApifyClient:
             force_refresh=force_refresh,
         )
 
+    # ---- Generic profile posts (any channel actor) -----------------------
+
+    def fetch_profile_posts(
+        self, actor_id: str, payload: dict, *, force_refresh: bool = False
+    ) -> list[dict]:
+        """Run any profile-posts actor and return its dataset items."""
+        return self._run_sync(actor_id, payload, force_refresh=force_refresh)
+
     # ---- Cache helpers ----------------------------------------------------
 
     @staticmethod
