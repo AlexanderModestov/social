@@ -240,8 +240,9 @@ async def on_prompt_refine_instruction(message: Message, state: FSMContext):
         return
 
     if result["kind"] == "clarify":
-        await state.update_data(refine_context=refine_context)
-        await message.answer(result["question"])
+        question = result["question"]
+        await state.update_data(refine_context=f"{refine_context}\nASSISTANT ASKED: {question}")
+        await message.answer(question)
         return  # stay in refining_prompt to receive the answer
 
     await state.update_data(prompts=result["prompts"], refine_context="")
