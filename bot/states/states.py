@@ -1,8 +1,9 @@
 from aiogram.fsm.state import State, StatesGroup
 
 class ToneOfVoiceStates(StatesGroup):
+    choosing_channel = State()
     choosing_method = State()
-    waiting_instagram_handle = State()
+    waiting_import_handle = State()
     waiting_role = State()
     waiting_audience = State()
     waiting_style = State()

@@ -3,42 +3,83 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.config import settings
+from bot.db.channels import CHANNEL_LABELS, INSTAGRAM, TIKTOK
 from bot.db.session import async_session_factory
 from bot.db.repository import ToneOfVoiceRepository
 from bot.keyboards.inline import (
+    main_menu_keyboard,
     style_words_keyboard,
     tone_of_voice_confirm_keyboard,
+    tov_channel_picker_keyboard,
     tov_method_keyboard,
 )
 from bot.services.claude_service import ClaudeService
 from bot.services.instagram_tov_service import (
-    InstagramTovService,
     NoPostsError,
     PrivateProfileError,
     ServiceError,
 )
 from bot.services.instagram_tov_formatter import format_instagram_profile, split_message
+from bot.services.tov.service import TovImportService
 from bot.states.states import ToneOfVoiceStates
 
 router = Router()
 
 
-# ── Entry point ────────────────────────────────────────────────────────────────
+# ── Shared "what next?" helper ───────────────────────────────────────────────
+
+async def _offer_next_or_done(message: Message, user_id: int):
+    """After a successful save: re-show the picker if channels remain, else menu.
+
+    Returns the FSM state to set (caller owns the state object).
+    """
+    async with async_session_factory() as session:
+        repo = ToneOfVoiceRepository(session)
+        channels = await repo.get_channels_with_tov(user_id)
+
+    picker = tov_channel_picker_keyboard(channels)
+    if picker.inline_keyboard:  # at least one channel still missing
+        await message.answer("✅ Saved. Set up another?", reply_markup=picker)
+        return ToneOfVoiceStates.choosing_channel
+    await message.answer("All set! 🎉", reply_markup=main_menu_keyboard(channels_with_tov=channels))
+    return None
+
+
+# ── Entry point ──────────────────────────────────────────────────────────────
 
 @router.callback_query(lambda c: c.data == "action:tone_of_voice")
-async def choose_method(callback: CallbackQuery, state: FSMContext):
-    await state.set_state(ToneOfVoiceStates.choosing_method)
+async def on_create_tov(callback: CallbackQuery, state: FSMContext):
+    async with async_session_factory() as session:
+        repo = ToneOfVoiceRepository(session)
+        channels = await repo.get_channels_with_tov(callback.from_user.id)
+    await state.set_state(ToneOfVoiceStates.choosing_channel)
     await callback.message.edit_text(
-        "How would you like to define your tone of voice?",
-        reply_markup=tov_method_keyboard(),
+        "Which channel do you want to set up a tone of voice for?",
+        reply_markup=tov_channel_picker_keyboard(channels),
     )
     await callback.answer()
 
 
-# ── Wizard path ────────────────────────────────────────────────────────────────
+# ── Channel picked ───────────────────────────────────────────────────────────
 
-@router.callback_query(ToneOfVoiceStates.choosing_method, F.data == "tov:wizard")
+@router.callback_query(ToneOfVoiceStates.choosing_channel, F.data.startswith("tovchan:"))
+async def on_channel_picked(callback: CallbackQuery, state: FSMContext):
+    channel = callback.data.split(":")[1]
+    await state.update_data(channel=channel)
+    await state.set_state(ToneOfVoiceStates.choosing_method)
+    await callback.message.edit_text(
+        f"How would you like to define your {CHANNEL_LABELS[channel]} tone of voice?",
+        reply_markup=tov_method_keyboard(channel),
+    )
+    await callback.answer()
+
+
+# ── Wizard path ──────────────────────────────────────────────────────────────
+
+@router.callback_query(ToneOfVoiceStates.choosing_method, F.data.startswith("tovm:wizard:"))
 async def on_wizard_chosen(callback: CallbackQuery, state: FSMContext):
+    channel = callback.data.split(":")[2]
+    await state.update_data(channel=channel)
     await state.set_state(ToneOfVoiceStates.waiting_role)
     await callback.message.edit_text(
         "Let's define your tone of voice.\n\n"
@@ -136,16 +177,22 @@ async def on_examples_done(message: Message, state: FSMContext):
 @router.callback_query(ToneOfVoiceStates.confirming_profile, F.data == "tov:save")
 async def on_save_profile(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    channel = data["channel"]
     async with async_session_factory() as session:
         repo = ToneOfVoiceRepository(session)
-        await repo.create(
+        await repo.upsert(
             user_id=callback.from_user.id,
-            name=f"Profile {data.get('role', '')[:30]}",
+            channel=channel,
+            name=f"{CHANNEL_LABELS[channel]} voice",
             profile_json=data["generated_profile"],
         )
         await session.commit()
-    await state.clear()
-    await callback.message.edit_text("Profile saved! You're ready to create content.")
+    await callback.message.edit_text("Profile saved! ✅")
+    next_state = await _offer_next_or_done(callback.message, callback.from_user.id)
+    if next_state is None:
+        await state.clear()
+    else:
+        await state.set_state(next_state)
     await callback.answer()
 
 
@@ -181,36 +228,62 @@ async def on_regenerate_profile(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
-# ── Instagram path ─────────────────────────────────────────────────────────────
+# ── Import path ──────────────────────────────────────────────────────────────
 
-@router.callback_query(ToneOfVoiceStates.choosing_method, F.data == "tov:instagram")
-async def on_instagram_chosen(callback: CallbackQuery, state: FSMContext):
+@router.callback_query(ToneOfVoiceStates.choosing_method, F.data.startswith("tovm:import:"))
+async def on_import_chosen(callback: CallbackQuery, state: FSMContext):
+    channel = callback.data.split(":")[2]
     if not settings.apify_token:
         await callback.answer(
-            "Instagram extraction is not configured. Use the wizard instead.",
+            "Import isn't configured; use the wizard instead.",
             show_alert=True,
         )
         return
-    await state.set_state(ToneOfVoiceStates.waiting_instagram_handle)
-    await callback.message.edit_text(
-        "Send your Instagram username or profile URL.\n\n"
-        "Examples: @alex  or  https://instagram.com/alex"
-    )
+    await state.update_data(channel=channel)
+    await state.set_state(ToneOfVoiceStates.waiting_import_handle)
+    if channel == INSTAGRAM:
+        prompt = (
+            "Send your Instagram username or profile URL.\n\n"
+            "Examples: @alex  or  https://instagram.com/alex"
+        )
+    elif channel == TIKTOK:
+        prompt = (
+            "Send your TikTok username or profile URL.\n\n"
+            "Examples: @alex  or  https://tiktok.com/@alex"
+        )
+    else:  # linkedin
+        prompt = (
+            "Send your LinkedIn profile URL.\n\n"
+            "Example: https://linkedin.com/in/alex"
+        )
+    await callback.message.edit_text(prompt)
     await callback.answer()
 
 
-@router.message(ToneOfVoiceStates.waiting_instagram_handle)
-async def on_instagram_handle(message: Message, state: FSMContext):
+@router.message(ToneOfVoiceStates.waiting_import_handle)
+async def on_import_handle(message: Message, state: FSMContext):
+    data = await state.get_data()
+    channel = data["channel"]
+
     if not settings.apify_token:
         await state.clear()
-        await message.answer("Instagram extraction is not configured. Send /start to try again.")
+        await message.answer("Import is not configured. Send /start to try again.")
         return
 
-    await message.answer("Analyzing your Instagram profile… this takes ~1–2 minutes ⏳")
+    await message.answer(f"Analyzing your {CHANNEL_LABELS[channel]} profile… this takes ~1–2 minutes ⏳")
 
-    svc = InstagramTovService(apify_token=settings.apify_token, anthropic_api_key=settings.anthropic_api_key)
+    svc = TovImportService(
+        apify_token=settings.apify_token,
+        anthropic_api_key=settings.anthropic_api_key,
+    )
     try:
-        profile = await svc.analyze(message.text.strip())
+        profile = await svc.analyze(channel, message.text)
+    except ValueError:
+        # Blank/invalid handle — stay in state so the user can retry.
+        await message.answer(
+            "That doesn't look like a valid handle or URL. Please try again."
+        )
+        return
     except PrivateProfileError:
         await state.clear()
         await message.answer(
@@ -233,17 +306,29 @@ async def on_instagram_handle(message: Message, state: FSMContext):
         )
         return
 
+    handle = profile.get("handle")
     async with async_session_factory() as session:
         repo = ToneOfVoiceRepository(session)
-        await repo.create(
+        await repo.upsert(
             user_id=message.from_user.id,
-            name=f"Instagram @{profile.get('username', '')}",
+            channel=channel,
+            name=f"{CHANNEL_LABELS[channel]} @{handle}",
             profile_json=profile,
         )
         await session.commit()
 
-    await state.clear()
+    if channel == INSTAGRAM:
+        formatted = format_instagram_profile(profile)
+        for part in split_message(formatted):
+            await message.answer(part)
+    else:
+        await message.answer(
+            f"{CHANNEL_LABELS[channel]} @{handle} — "
+            f"{profile.get('posts_analyzed', 0)} posts analyzed. ✅"
+        )
 
-    formatted = format_instagram_profile(profile)
-    for part in split_message(formatted):
-        await message.answer(part)
+    next_state = await _offer_next_or_done(message, message.from_user.id)
+    if next_state is None:
+        await state.clear()
+    else:
+        await state.set_state(next_state)
