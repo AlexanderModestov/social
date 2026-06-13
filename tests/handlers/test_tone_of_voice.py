@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from bot.handlers import tone_of_voice as tov
 from bot.db.channels import INSTAGRAM, TIKTOK, CHANNEL_LABELS
+from bot.services.tov.errors import ServiceError
 from bot.states.states import ToneOfVoiceStates
 from tests.handlers._fakes import (
     FakeMessage,
@@ -186,11 +187,44 @@ async def test_import_handle_blank_handle_value_error_stays_in_state():
 
 
 @pytest.mark.asyncio
-async def test_import_handle_instagram_uses_rich_formatter():
+async def test_import_handle_instagram_runs_real_formatter_and_does_not_raise():
+    # Regression guard: TovImportService.analyze returns a profile with `handle`
+    # but NO `username`; the real formatter hard-subscripts profile['username'].
+    # The handler must supply username=handle before formatting (KeyError otherwise).
     state = FakeFSMContext({"channel": INSTAGRAM})
     message = FakeMessage(text="@ig")
 
-    profile = {"handle": "ig", "username": "ig", "posts_analyzed": 5}
+    # Full IG schema the formatter reads — note: NO `username` key (the bug).
+    profile = {
+        "handle": "ig",
+        "posts_analyzed": 5,
+        "persona_summary": "A travel storyteller.",
+        "archetype": "Explorer",
+        "voice_dimensions": [
+            {"name": "Warmth", "description": "Friendly and inviting"},
+            {"name": "Energy", "description": "Upbeat pacing"},
+        ],
+        "language": {
+            "primary": "English",
+            "secondary": "Spanish",
+            "mixing_note": "occasional code-switching",
+        },
+        "caption_patterns": [
+            {"name": "Hook question", "frequency": "often", "description": "Opens with a question"},
+        ],
+        "motifs": {
+            "themes": ["adventure", "food"],
+            "places": ["Lisbon", "Tokyo"],
+            "sensory": ["salt air"],
+        },
+        "dos": ["Be vivid", "Use first person"],
+        "donts": ["Avoid jargon"],
+        "signature_elements": {
+            "punctuation": "em-dashes",
+            "hashtags": "#wanderlust",
+            "phrases": ["let's go", "trust me"],
+        },
+    }
     fake_svc = MagicMock()
     fake_svc.analyze = AsyncMock(return_value=profile)
 
@@ -202,8 +236,37 @@ async def test_import_handle_instagram_uses_rich_formatter():
          patch.object(tov.settings, "anthropic_api_key", "key"), \
          patch.object(tov, "TovImportService", return_value=fake_svc), \
          patch.object(tov, "ToneOfVoiceRepository", return_value=fake_repo), \
-         patch.object(tov, "async_session_factory", fake_session_factory()), \
-         patch.object(tov, "format_instagram_profile", return_value="RICH") as fmt:
+         patch.object(tov, "async_session_factory", fake_session_factory()):
+        # Real format_instagram_profile + split_message run here (NOT patched).
+        # Must NOT raise KeyError('username').
         await tov.on_import_handle(message, state)
 
-    fmt.assert_called_once_with(profile)
+    # Handler supplied the username from handle, and sent a non-empty message.
+    assert profile["username"] == "ig"
+    message.answer.assert_awaited()
+    sent = [c.args[0] for c in message.answer.await_args_list if c.args]
+    assert any("@ig" in part for part in sent)
+
+
+@pytest.mark.asyncio
+async def test_import_handle_service_error_clears_state_and_notifies():
+    state = FakeFSMContext({"channel": INSTAGRAM})
+    state.state = ToneOfVoiceStates.waiting_import_handle
+    message = FakeMessage(text="@ig")
+
+    fake_svc = MagicMock()
+    fake_svc.analyze = AsyncMock(side_effect=ServiceError("apify down"))
+
+    fake_repo = MagicMock()
+    fake_repo.upsert = AsyncMock()
+
+    with patch.object(tov.settings, "apify_token", "token-123"), \
+         patch.object(tov.settings, "anthropic_api_key", "key"), \
+         patch.object(tov, "TovImportService", return_value=fake_svc), \
+         patch.object(tov, "ToneOfVoiceRepository", return_value=fake_repo), \
+         patch.object(tov, "async_session_factory", fake_session_factory()):
+        await tov.on_import_handle(message, state)
+
+    fake_repo.upsert.assert_not_awaited()
+    assert state.state is None  # error-taxonomy branch cleared state
+    message.answer.assert_awaited()

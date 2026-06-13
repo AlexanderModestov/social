@@ -14,16 +14,30 @@ from bot.keyboards.inline import (
     tov_method_keyboard,
 )
 from bot.services.claude_service import ClaudeService
-from bot.services.instagram_tov_service import (
+from bot.services.instagram_tov_formatter import format_instagram_profile, split_message
+from bot.services.tov.errors import (
     NoPostsError,
     PrivateProfileError,
     ServiceError,
 )
-from bot.services.instagram_tov_formatter import format_instagram_profile, split_message
 from bot.services.tov.service import TovImportService
 from bot.states.states import ToneOfVoiceStates
 
 router = Router()
+
+
+# ── Wizard profile preview helper ────────────────────────────────────────────
+
+def _format_profile_text(profile: dict) -> str:
+    """Render the wizard-generated TOV profile preview (Markdown)."""
+    return (
+        f"*Your tone of voice profile:*\n\n"
+        f"*Voice:* {profile.get('voice_summary', '')}\n"
+        f"*Style:* {', '.join(profile.get('tone_words', []))}\n"
+        f"*Always:* {'; '.join(profile.get('always', []))}\n"
+        f"*Avoid:* {'; '.join(profile.get('avoid', []))}\n"
+        f"*Audience:* {profile.get('audience', '')}"
+    )
 
 
 # ── Shared "what next?" helper ───────────────────────────────────────────────
@@ -163,14 +177,7 @@ async def on_examples_done(message: Message, state: FSMContext):
     await state.update_data(generated_profile=profile)
     await state.set_state(ToneOfVoiceStates.confirming_profile)
 
-    profile_text = (
-        f"*Your tone of voice profile:*\n\n"
-        f"*Voice:* {profile.get('voice_summary', '')}\n"
-        f"*Style:* {', '.join(profile.get('tone_words', []))}\n"
-        f"*Always:* {'; '.join(profile.get('always', []))}\n"
-        f"*Avoid:* {'; '.join(profile.get('avoid', []))}\n"
-        f"*Audience:* {profile.get('audience', '')}"
-    )
+    profile_text = _format_profile_text(profile)
     await message.answer(profile_text, parse_mode="Markdown", reply_markup=tone_of_voice_confirm_keyboard())
 
 
@@ -216,14 +223,7 @@ async def on_regenerate_profile(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
     await state.update_data(generated_profile=profile)
-    profile_text = (
-        f"*Your tone of voice profile:*\n\n"
-        f"*Voice:* {profile.get('voice_summary', '')}\n"
-        f"*Style:* {', '.join(profile.get('tone_words', []))}\n"
-        f"*Always:* {'; '.join(profile.get('always', []))}\n"
-        f"*Avoid:* {'; '.join(profile.get('avoid', []))}\n"
-        f"*Audience:* {profile.get('audience', '')}"
-    )
+    profile_text = _format_profile_text(profile)
     await callback.message.edit_text(profile_text, parse_mode="Markdown", reply_markup=tone_of_voice_confirm_keyboard())
     await callback.answer()
 
@@ -318,6 +318,7 @@ async def on_import_handle(message: Message, state: FSMContext):
         await session.commit()
 
     if channel == INSTAGRAM:
+        profile["username"] = profile.get("handle")  # formatter reads ['username']
         formatted = format_instagram_profile(profile)
         for part in split_message(formatted):
             await message.answer(part)
