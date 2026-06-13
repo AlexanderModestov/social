@@ -49,3 +49,21 @@ def test_apify_token_reads_from_env(monkeypatch):
 def test_publora_settings_optional_and_unset_by_default():
     assert settings.publora_api_key is None
     assert settings.linkedin_platform_id is None
+
+
+def test_allowed_users_parses_comma_and_space_separated(monkeypatch):
+    monkeypatch.setenv("ALLOWED_USER_IDS", "111, 222  333")
+    s = Settings(_env_file=None)
+    assert s.allowed_users() == {111, 222, 333}
+
+
+def test_allowed_users_empty_when_unset(monkeypatch):
+    monkeypatch.delenv("ALLOWED_USER_IDS", raising=False)
+    s = Settings(_env_file=None)
+    assert s.allowed_users() == set()
+
+
+def test_allowed_users_skips_non_numeric(monkeypatch):
+    monkeypatch.setenv("ALLOWED_USER_IDS", "111, abc, 222")
+    s = Settings(_env_file=None)
+    assert s.allowed_users() == {111, 222}

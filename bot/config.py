@@ -20,8 +20,25 @@ class Settings(BaseSettings):
     linkedin_platform_id: Optional[str] = None
     google_application_credentials_json: Optional[str] = None
     database_url: str
+    # Comma/space-separated Telegram user IDs allowed to use the bot.
+    # Empty/unset => no one is allowed (fail-closed).
+    allowed_user_ids: str = ""
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    def allowed_users(self) -> set[int]:
+        """Parse `allowed_user_ids` into a set of Telegram user IDs.
+
+        Accepts comma- and/or whitespace-separated integers; non-numeric tokens
+        are ignored. An empty/unset value yields an empty set (fail-closed).
+        """
+        ids: set[int] = set()
+        for token in (self.allowed_user_ids or "").replace(",", " ").split():
+            try:
+                ids.add(int(token))
+            except ValueError:
+                continue
+        return ids
 
 
 settings = Settings()
