@@ -206,7 +206,8 @@ async def on_prompt_refine(callback: CallbackQuery, state: FSMContext):
     await state.update_data(refine_context="")
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(
-        "What should I change? e.g. \"more energetic, sunset lighting, slower camera\""
+        "What should I change? e.g. \"more energetic, sunset lighting, slower camera\".\n"
+        "Send /cancel to go back."
     )
     await callback.answer()
 
@@ -214,8 +215,12 @@ async def on_prompt_refine(callback: CallbackQuery, state: FSMContext):
 @router.message(TikTokStates.refining_prompt)
 async def on_prompt_refine_instruction(message: Message, state: FSMContext):
     text = (message.text or "").strip()
+    if text == "/cancel":
+        await state.update_data(refine_context="")
+        await _show_prompt_review(message, state)
+        return
     if not text or text.startswith("/"):
-        await message.answer("Send a plain-language instruction (not a command).")
+        await message.answer("Send a plain-language instruction, or /cancel to go back.")
         return
     data = await state.get_data()
     prev = data.get("refine_context", "")
