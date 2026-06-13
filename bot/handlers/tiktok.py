@@ -203,6 +203,7 @@ async def on_prompt_edited(message: Message, state: FSMContext):
 @router.callback_query(TikTokStates.reviewing_prompt, F.data == "veo:refine")
 async def on_prompt_refine(callback: CallbackQuery, state: FSMContext):
     await state.set_state(TikTokStates.refining_prompt)
+    await state.update_data(refine_context="")
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer(
         "What should I change? e.g. \"more energetic, sunset lighting, slower camera\""
@@ -212,11 +213,13 @@ async def on_prompt_refine(callback: CallbackQuery, state: FSMContext):
 
 @router.message(TikTokStates.refining_prompt)
 async def on_prompt_refine_instruction(message: Message, state: FSMContext):
-    instruction = (message.text or "").strip()
-    if not instruction or instruction.startswith("/"):
+    text = (message.text or "").strip()
+    if not text or text.startswith("/"):
         await message.answer("Send a plain-language instruction (not a command).")
         return
     data = await state.get_data()
+    prev = data.get("refine_context", "")
+    refine_context = f"{prev}\n{text}".strip() if prev else text
 
     async with async_session_factory() as session:
         tov = await ToneOfVoiceRepository(session).get_active(message.from_user.id)
@@ -224,18 +227,24 @@ async def on_prompt_refine_instruction(message: Message, state: FSMContext):
 
     gemini = GeminiService()
     try:
-        new_prompts = await gemini.refine_veo_prompt(
+        result = await gemini.refine_veo_prompt(
             current_prompts=data.get("prompts", []),
-            instruction=instruction,
+            instruction=refine_context,
             tone_profile=tone_profile,
             mode=data.get("video_mode", "quick"),
         )
     except Exception as e:
+        await state.update_data(refine_context="")
         await _show_prompt_review(message, state)
         await message.answer(f"Couldn't refine that: {e}")
         return
 
-    await state.update_data(prompts=new_prompts)
+    if result["kind"] == "clarify":
+        await state.update_data(refine_context=refine_context)
+        await message.answer(result["question"])
+        return  # stay in refining_prompt to receive the answer
+
+    await state.update_data(prompts=result["prompts"], refine_context="")
     await _show_prompt_review(message, state)
 
 
