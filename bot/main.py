@@ -13,7 +13,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
 from bot.config import settings
-from bot.handlers import start, tone_of_voice, tiktok
+from bot.handlers import start, tone_of_voice, tiktok, settings as settings_handler
 from bot.handlers import linkedin as linkedin_pkg
 print("=== all imports OK ===", flush=True)
 
@@ -33,6 +33,7 @@ async def main():
         return False
 
     dp.include_router(start.router)
+    dp.include_router(settings_handler.router)
     dp.include_router(tone_of_voice.router)
     for r in linkedin_pkg.routers:
         dp.include_router(r)
