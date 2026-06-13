@@ -1,13 +1,16 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from bot.config import settings
+from bot.db.channels import CHANNELS, CHANNEL_LABELS
 
 
-def main_menu_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎭 Create tone of voice", callback_data="action:tone_of_voice")],
-        [InlineKeyboardButton(text="✍️ Create content", callback_data="action:create_content")],
-    ])
+def main_menu_keyboard(channels_with_tov: set[str] | None = None) -> InlineKeyboardMarkup:
+    channels_with_tov = channels_with_tov or set()
+    rows = []
+    if set(channels_with_tov) != set(CHANNELS):
+        rows.append([InlineKeyboardButton(text="🎭 Create tone of voice", callback_data="action:tone_of_voice")])
+    rows.append([InlineKeyboardButton(text="✍️ Create content", callback_data="action:create_content")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def platform_keyboard() -> InlineKeyboardMarkup:
@@ -101,8 +104,29 @@ def prompt_review_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
-def tov_method_keyboard() -> InlineKeyboardMarkup:
+def tov_channel_picker_keyboard(channels_with_tov: set[str]) -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text=CHANNEL_LABELS[c], callback_data=f"tovchan:{c}")]
+        for c in CHANNELS if c not in channels_with_tov
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def tov_method_keyboard(channel: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🧙 Answer a few questions", callback_data="tov:wizard")],
-        [InlineKeyboardButton(text="📸 Import from Instagram", callback_data="tov:instagram")],
+        [InlineKeyboardButton(text="🧙 Answer a few questions", callback_data=f"tovm:wizard:{channel}")],
+        [InlineKeyboardButton(text="📥 Import from my profile", callback_data=f"tovm:import:{channel}")],
     ])
+
+
+def settings_keyboard(channels_with_tov: set[str]) -> InlineKeyboardMarkup:
+    rows = []
+    for c in CHANNELS:
+        if c in channels_with_tov:
+            rows.append([
+                InlineKeyboardButton(text=f"{CHANNEL_LABELS[c]} · ✏️ Recreate", callback_data=f"settings:create:{c}"),
+                InlineKeyboardButton(text="🗑 Delete", callback_data=f"settings:delete:{c}"),
+            ])
+        else:
+            rows.append([InlineKeyboardButton(text=f"{CHANNEL_LABELS[c]} · ➕ Create", callback_data=f"settings:create:{c}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)

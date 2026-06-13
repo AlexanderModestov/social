@@ -17,15 +17,17 @@ def test_tiktok_subtype_has_two_options():
     assert len(buttons) == 2
 
 def test_tov_method_keyboard_has_two_buttons():
-    kb = tov_method_keyboard()
+    from bot.db.channels import INSTAGRAM
+    kb = tov_method_keyboard(INSTAGRAM)
     buttons = [btn for row in kb.inline_keyboard for btn in row]
     assert len(buttons) == 2
 
 def test_tov_method_keyboard_callback_data():
-    kb = tov_method_keyboard()
+    from bot.db.channels import INSTAGRAM
+    kb = tov_method_keyboard(INSTAGRAM)
     callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
-    assert "tov:wizard" in callbacks
-    assert "tov:instagram" in callbacks
+    assert "tovm:wizard:instagram" in callbacks
+    assert "tovm:import:instagram" in callbacks
 
 def test_prompt_review_keyboard_has_accept_refine_edit():
     kb = prompt_review_keyboard()
@@ -73,3 +75,37 @@ def test_linkedin_menu_has_all_skills():
         "li:content-planner", "li:employee-advocacy",
     ]:
         assert skill in data
+
+
+from bot.keyboards.inline import (
+    tov_channel_picker_keyboard, settings_keyboard,
+)
+from bot.db.channels import CHANNELS, INSTAGRAM, TIKTOK, LINKEDIN
+
+def _labels(kb):
+    return [b.text for row in kb.inline_keyboard for b in row]
+
+def test_main_menu_shows_create_tov_when_channel_missing():
+    kb = main_menu_keyboard(channels_with_tov={LINKEDIN})
+    assert any("tone of voice" in t.lower() for t in _labels(kb))
+
+def test_main_menu_hides_create_tov_when_all_present():
+    kb = main_menu_keyboard(channels_with_tov=set(CHANNELS))
+    assert not any("tone of voice" in t.lower() for t in _labels(kb))
+
+def test_picker_lists_only_missing_channels():
+    kb = tov_channel_picker_keyboard(channels_with_tov={LINKEDIN})
+    data = [b.callback_data for row in kb.inline_keyboard for b in row]
+    assert "tovchan:instagram" in data and "tovchan:tiktok" in data
+    assert "tovchan:linkedin" not in data
+
+def test_method_keyboard_carries_channel():
+    kb = tov_method_keyboard(INSTAGRAM)
+    data = [b.callback_data for row in kb.inline_keyboard for b in row]
+    assert "tovm:wizard:instagram" in data and "tovm:import:instagram" in data
+
+def test_settings_shows_status_per_channel():
+    kb = settings_keyboard(channels_with_tov={INSTAGRAM})
+    data = [b.callback_data for row in kb.inline_keyboard for b in row]
+    assert "settings:delete:instagram" in data       # created → delete/edit
+    assert "settings:create:tiktok" in data           # missing → create
