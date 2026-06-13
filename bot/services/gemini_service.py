@@ -93,6 +93,31 @@ class GeminiService:
         text = await self._generate(description, image_paths, system_prompt)
         return self._split_scenes(text, max_scenes)
 
+    def _parse_refine_result(self, raw: dict, max_scenes: int) -> dict:
+        kind = raw.get("kind")
+        if kind == "clarify":
+            question = (raw.get("question") or "").strip()
+            if not question:
+                raise ValueError("clarify result missing question")
+            return {"kind": "clarify", "question": question}
+        if kind == "revision":
+            prompts = [p.strip() for p in (raw.get("prompts") or []) if p and p.strip()]
+            if not prompts:
+                raise ValueError("revision result missing prompts")
+            return {"kind": "revision", "prompts": prompts[:max_scenes]}
+        raise ValueError(f"unknown refine result kind: {kind!r}")
+
+    async def _generate_json(self, text: str, system_prompt: str) -> dict:
+        resp = await _get_client().aio.models.generate_content(
+            model=self.MODEL,
+            contents=[types.Part.from_text(text=text)],
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                response_mime_type="application/json",
+            ),
+        )
+        return json.loads(resp.text or "{}")
+
     def _refine_system(
         self, current_prompts: list[str], instruction: str, tone_profile: dict, mode: str,
     ) -> str:

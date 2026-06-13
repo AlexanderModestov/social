@@ -1,3 +1,5 @@
+import pytest
+
 from bot.services.gemini_service import GeminiService, _get_client
 
 
@@ -74,3 +76,29 @@ def test_refine_system_includes_instruction_and_constraints():
     assert "8 second" in sys
     assert "text" in sys.lower()       # no-on-screen-text constraint preserved
     assert "bold" in sys
+
+
+def test_parse_refine_result_revision_caps_at_max_scenes():
+    svc = GeminiService()
+    raw = {"kind": "revision", "prompts": [f"p{i}" for i in range(5)]}
+    out = svc._parse_refine_result(raw, max_scenes=2)
+    assert out["kind"] == "revision"
+    assert out["prompts"] == ["p0", "p1"]
+
+
+def test_parse_refine_result_clarify_returns_question():
+    svc = GeminiService()
+    out = svc._parse_refine_result({"kind": "clarify", "question": "Which dog?"}, max_scenes=3)
+    assert out == {"kind": "clarify", "question": "Which dog?"}
+
+
+def test_parse_refine_result_revision_without_prompts_raises():
+    svc = GeminiService()
+    with pytest.raises(ValueError):
+        svc._parse_refine_result({"kind": "revision", "prompts": []}, max_scenes=3)
+
+
+def test_parse_refine_result_unknown_kind_raises():
+    svc = GeminiService()
+    with pytest.raises(ValueError):
+        svc._parse_refine_result({"kind": "wat"}, max_scenes=3)
