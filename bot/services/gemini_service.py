@@ -57,15 +57,14 @@ class GeminiService:
     def _veo_scenes_system(self, tone_profile: dict, max_scenes: int) -> str:
         dur = settings.veo_duration_seconds
         return (
-            "You are a video director storyboarding a short vertical 9:16 TikTok "
-            f"video as AT MOST {max_scenes} scenes. Each scene is ONE shot lasting "
-            f"exactly {dur} seconds, so describe only the action that fits in that "
-            "time. For each "
-            "scene write one vivid, cinematic shot description (subject, camera, "
-            "lighting, mood) suitable as a text-to-video prompt. "
+            "You are a video director storyboarding a vertical 9:16 TikTok video as AT "
+            f"MOST {max_scenes} scenes. Each scene is ONE shot lasting exactly {dur} "
+            "seconds. Carry the CORE IDEA and visual continuity across the scenes so "
+            "they read as one coherent video. "
+            f"{self._CORE_SPEC}"
             f"{self._NO_TEXT} "
             "Format EXACTLY as:\n"
-            "Scene 1: <description>\nScene 2: <description>\n...\n"
+            "Scene 1: <beats>\nScene 2: <beats>\n...\n"
             "Output only the scenes, no preamble. "
             f"Match this tone of voice: {json.dumps(tone_profile)}"
         )

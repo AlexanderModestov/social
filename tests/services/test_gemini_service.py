@@ -59,12 +59,17 @@ def test_veo_prompt_system_is_idea_anchored_and_actionforward():
     assert "punchy" in sys                    # tone injected
 
 
-def test_veo_scenes_system_has_duration_and_no_text():
+def test_veo_scenes_system_is_idea_anchored_and_beatstructured():
     svc = GeminiService()
     sys = svc._veo_scenes_system({}, max_scenes=3)
+    assert "CORE IDEA" in sys
+    assert "[00:00" in sys
+    assert "before atmosphere" in sys
+    assert "quotation marks" in sys
     assert "8 second" in sys
-    assert "text" in sys.lower()
-    assert "3" in sys
+    assert "no readable text" in sys           # no-on-screen-text retained (strong assertion)
+    assert "3" in sys                          # max_scenes injected
+    assert "Scene 1:" in sys                   # scene output format
 
 
 def test_refine_system_includes_instruction_and_constraints():
