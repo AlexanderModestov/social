@@ -197,3 +197,7 @@ code path).
 - Background engagement tracking / scheduler / tracking tables.
 - AI-detector (GPTZero/Originality/etc.) test harness scripts.
 - Cross-platform publishing (X, Threads, Instagram via Publora).
+- `linkedin-thread-monitor` skill: vendored under `skills/linkedin/` for fidelity
+  but intentionally NOT surfaced (no menu button, not in `SKILL_DIRS`). Its
+  background reply-tracking overlaps with the on-demand Engagement Monitor, and
+  the "no background tracking" decision folds it out.

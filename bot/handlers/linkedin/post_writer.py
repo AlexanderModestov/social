@@ -105,8 +105,12 @@ async def on_edit_feedback(message: Message, state: FSMContext):
 @router.callback_query(LinkedInStates.editing, F.data == "post:publish")
 async def on_publish(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
+    post = data.get("generated_post")
+    if not post:
+        await callback.answer("Nothing to publish yet.", show_alert=True)
+        return
     result = await asyncio.to_thread(
-        publish, "post", data["generated_post"],
+        publish, "post", post,
         "https://www.linkedin.com/post/new/",
     )
     await callback.message.answer(result["message"])
