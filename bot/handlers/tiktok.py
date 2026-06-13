@@ -6,6 +6,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, FSInputFile, Message, InlineKeyboardButton, InlineKeyboardMarkup
 from bot.config import settings
+from bot.db.channels import TIKTOK
 from bot.db.session import async_session_factory
 from bot.db.repository import ToneOfVoiceRepository
 from bot.keyboards.inline import tiktok_subtype_keyboard, video_mode_keyboard, prompt_review_keyboard
@@ -73,7 +74,7 @@ async def on_product_url(message: Message, state: FSMContext):
 async def on_generate_caption(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     async with async_session_factory() as session:
-        tov = await ToneOfVoiceRepository(session).get_active(callback.from_user.id)
+        tov = await ToneOfVoiceRepository(session).get_for_channel(callback.from_user.id, TIKTOK)
     scraper = ScraperService()
     page_content = await scraper.scrape_url(data.get("recorded_url", ""))
     claude = ClaudeService()
@@ -146,7 +147,7 @@ async def on_materials_done(message: Message, state: FSMContext):
     await message.answer("Writing your video prompt…")
 
     async with async_session_factory() as session:
-        tov = await ToneOfVoiceRepository(session).get_active(message.from_user.id)
+        tov = await ToneOfVoiceRepository(session).get_for_channel(message.from_user.id, TIKTOK)
     tone_profile = tov.profile_json if tov else {}
 
     image_paths = await _download_photos(message, data.get("materials", []))
@@ -227,7 +228,7 @@ async def on_prompt_refine_instruction(message: Message, state: FSMContext):
     refine_context = f"{prev}\n{text}".strip() if prev else text
 
     async with async_session_factory() as session:
-        tov = await ToneOfVoiceRepository(session).get_active(message.from_user.id)
+        tov = await ToneOfVoiceRepository(session).get_for_channel(message.from_user.id, TIKTOK)
     tone_profile = tov.profile_json if tov else {}
 
     gemini = GeminiService()
