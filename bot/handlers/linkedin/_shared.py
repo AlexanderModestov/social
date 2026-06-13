@@ -1,6 +1,7 @@
 import asyncio
 from bot.config import settings
 from bot.db.session import async_session_factory
+from bot.db.channels import LINKEDIN
 from bot.db.repository import ToneOfVoiceRepository, PostHistoryRepository
 from bot.keyboards.inline import post_actions_keyboard
 from bot.services.linkedin import parse_linkedin_url, fetch_post
@@ -39,7 +40,7 @@ async def fetch_engagers(post_url: str, max_items: int = 50):
 
 async def get_active_tov(user_id: int) -> dict:
     async with async_session_factory() as session:
-        tov = await ToneOfVoiceRepository(session).get_active(user_id)
+        tov = await ToneOfVoiceRepository(session).get_for_channel(user_id, LINKEDIN)
     return tov.profile_json if tov else {}
 
 

@@ -1,6 +1,8 @@
 import pytest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from bot.handlers.linkedin import _shared
+from bot.db.channels import LINKEDIN
+from tests.handlers._fakes import fake_session_factory
 
 
 @pytest.mark.asyncio
@@ -60,3 +62,24 @@ def test_report_card_has_save_button_and_extra_rows():
     assert "skill:save" in data   # save button appended
     # extra row comes before save
     assert data.index("x:y") < data.index("skill:save")
+
+
+@pytest.mark.asyncio
+async def test_get_active_tov_uses_linkedin_channel():
+    fake_repo = MagicMock()
+    fake_repo.get_for_channel = AsyncMock(return_value=MagicMock(profile_json={"x": 1}))
+    with patch.object(_shared, "ToneOfVoiceRepository", return_value=fake_repo), \
+         patch.object(_shared, "async_session_factory", fake_session_factory()):
+        result = await _shared.get_active_tov(42)
+    fake_repo.get_for_channel.assert_awaited_once_with(42, LINKEDIN)
+    assert result == {"x": 1}
+
+
+@pytest.mark.asyncio
+async def test_get_active_tov_returns_empty_when_none():
+    fake_repo = MagicMock()
+    fake_repo.get_for_channel = AsyncMock(return_value=None)
+    with patch.object(_shared, "ToneOfVoiceRepository", return_value=fake_repo), \
+         patch.object(_shared, "async_session_factory", fake_session_factory()):
+        result = await _shared.get_active_tov(42)
+    assert result == {}
