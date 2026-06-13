@@ -4,8 +4,9 @@ from unittest.mock import AsyncMock
 
 
 class FakeUser:
-    def __init__(self, user_id=42):
+    def __init__(self, user_id=42, username="tester"):
         self.id = user_id
+        self.username = username
 
 
 class FakeMessage:
