@@ -88,6 +88,20 @@ def test_refine_system_asks_json_and_keeps_constraints():
     assert "8 second" in sys
     assert "no readable text" in sys
     assert "bold" in sys
+    assert "exactly ONE prompt" in sys          # quick-mode cardinality
+    assert "never as a stall" in sys            # behavioral wording guarded
+
+
+def test_refine_system_full_mode_states_scene_cardinality():
+    svc = GeminiService()
+    sys = svc._refine_system(
+        current_prompts=["Scene 1: a", "Scene 2: b"],
+        instruction="add a dog",
+        tone_profile={},
+        mode="full",
+    )
+    assert "multi-scene" in sys
+    assert "per array element" in sys
 
 
 def test_parse_refine_result_revision_caps_at_max_scenes():

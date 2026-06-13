@@ -144,12 +144,23 @@ class GeminiService:
             "style or detail; keep everything the user did not ask to change. Only ask a "
             "question when you truly cannot tell what to change — never as a stall."
         )
+        if mode == "full":
+            cardinality = (
+                "This is a multi-scene video: return one revised scene per array "
+                f"element, at most {settings.veo_max_scenes} scenes, preserving the "
+                "existing scene count unless the instruction changes it."
+            )
+        else:
+            cardinality = (
+                "This is a single-clip video: return exactly ONE prompt in the "
+                "prompts array."
+            )
         return (
             "You are revising an existing text-to-video prompt for a vertical 9:16 "
             f"TikTok clip; each shot is exactly {dur} seconds. "
             f"{self._CORE_SPEC}"
             f"{self._NO_TEXT} "
-            f"{shape}\n\n"
+            f"{shape} {cardinality}\n\n"
             f"CURRENT PROMPT:\n{joined}\n\n"
             f"INSTRUCTION:\n{instruction}\n\n"
             f"Match this tone of voice: {json.dumps(tone_profile)}"
