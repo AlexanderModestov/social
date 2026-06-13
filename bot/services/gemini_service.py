@@ -135,20 +135,21 @@ class GeminiService:
     ) -> str:
         dur = settings.veo_duration_seconds
         joined = "\n\n".join(current_prompts)
-        if mode == "full":
-            fmt = (
-                "Output the full set of scenes in the EXACT format "
-                "'Scene 1: <description>' (one per line)."
-            )
-        else:
-            fmt = "Output ONLY the single revised prompt text, no preamble."
+        shape = (
+            "Respond with ONLY a JSON object. If the instruction is clear, apply it and "
+            'return {"kind": "revision", "prompts": ["<full revised prompt>"]} — for a '
+            "full video put one revised scene per array element. If the instruction is "
+            'genuinely ambiguous, instead return {"kind": "clarify", "question": "<one '
+            'short question>"}. Apply the requested change even if it alters earlier '
+            "style or detail; keep everything the user did not ask to change. Only ask a "
+            "question when you truly cannot tell what to change — never as a stall."
+        )
         return (
             "You are revising an existing text-to-video prompt for a vertical 9:16 "
-            "TikTok clip. Apply the user's instruction, keeping everything they did "
-            "not ask to change. "
-            f"Each shot is exactly {dur} seconds — keep the action within that time. "
+            f"TikTok clip; each shot is exactly {dur} seconds. "
+            f"{self._CORE_SPEC}"
             f"{self._NO_TEXT} "
-            f"{fmt}\n\n"
+            f"{shape}\n\n"
             f"CURRENT PROMPT:\n{joined}\n\n"
             f"INSTRUCTION:\n{instruction}\n\n"
             f"Match this tone of voice: {json.dumps(tone_profile)}"
@@ -156,9 +157,9 @@ class GeminiService:
 
     async def refine_veo_prompt(
         self, current_prompts: list[str], instruction: str, tone_profile: dict, mode: str,
-    ) -> list[str]:
+        max_scenes: int | None = None,
+    ) -> dict:
+        max_scenes = max_scenes or settings.veo_max_scenes
         system_prompt = self._refine_system(current_prompts, instruction, tone_profile, mode)
-        text = await self._generate(instruction, [], system_prompt)
-        if mode == "full":
-            return self._split_scenes(text)
-        return [text.strip()]
+        raw = await self._generate_json(instruction, system_prompt)
+        return self._parse_refine_result(raw, max_scenes)

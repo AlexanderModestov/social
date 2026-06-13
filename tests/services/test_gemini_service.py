@@ -72,7 +72,7 @@ def test_veo_scenes_system_is_idea_anchored_and_beatstructured():
     assert "Scene 1:" in sys                   # scene output format
 
 
-def test_refine_system_includes_instruction_and_constraints():
+def test_refine_system_asks_json_and_keeps_constraints():
     svc = GeminiService()
     sys = svc._refine_system(
         current_prompts=["A cat naps on a sunny windowsill."],
@@ -82,8 +82,11 @@ def test_refine_system_includes_instruction_and_constraints():
     )
     assert "make it more energetic" in sys
     assert "A cat naps on a sunny windowsill." in sys
+    assert '"kind"' in sys                     # JSON shape specified
+    assert "revision" in sys and "clarify" in sys
+    assert "before atmosphere" in sys          # core spec preserved
     assert "8 second" in sys
-    assert "text" in sys.lower()       # no-on-screen-text constraint preserved
+    assert "no readable text" in sys
     assert "bold" in sys
 
 
