@@ -13,6 +13,35 @@ class LinkedInStates(StatesGroup):
     collecting_inputs = State()
     editing = State()
 
+class HumanizerStates(StatesGroup):
+    waiting_input = State()
+    reviewing = State()
+
+class PostAuditStates(StatesGroup):
+    waiting_input = State()
+
+class CommentDrafterStates(StatesGroup):
+    waiting_input = State()
+
+class ReplyHandlerStates(StatesGroup):
+    waiting_input = State()
+
+class HookExtractorStates(StatesGroup):
+    waiting_input = State()
+
+class EngagementStates(StatesGroup):
+    waiting_input = State()
+
+class ProfileOptimizerStates(StatesGroup):
+    waiting_input = State()
+
+class EmployeeAdvocacyStates(StatesGroup):
+    waiting_input = State()
+
+class ContentPlannerStates(StatesGroup):
+    waiting_role = State()
+    waiting_audience = State()
+
 class TikTokStates(StatesGroup):
     waiting_subtype = State()
     waiting_product_url = State()

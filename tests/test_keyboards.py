@@ -42,3 +42,34 @@ def test_video_mode_keyboard_labels_reflect_settings():
     assert any(f"{settings.veo_duration_seconds}s" in l for l in labels)
     assert any(f"{settings.veo_max_scenes} scenes" in l for l in labels)
     assert "videomode:quick" in callbacks and "videomode:full" in callbacks
+
+
+from bot.keyboards.inline import linkedin_menu_keyboard
+
+
+def test_post_actions_keyboard_has_publish():
+    from bot.keyboards.inline import post_actions_keyboard
+    data = [b.callback_data for row in post_actions_keyboard().inline_keyboard for b in row]
+    assert "post:publish" in data
+    # existing actions still present
+    for cb in ("post:regenerate", "post:edit", "post:save"):
+        assert cb in data
+
+
+def test_humanizer_modes_keyboard_has_modes_and_save():
+    from bot.keyboards.inline import humanizer_modes_keyboard
+    data = [b.callback_data for row in humanizer_modes_keyboard().inline_keyboard for b in row]
+    for cb in ("hmz:strict", "hmz:aesthetic", "hmz:forensic", "skill:save"):
+        assert cb in data
+
+
+def test_linkedin_menu_has_all_skills():
+    kb = linkedin_menu_keyboard()
+    data = [b.callback_data for row in kb.inline_keyboard for b in row]
+    for skill in [
+        "li:post-writer", "li:comment-drafter", "li:reply-handler",
+        "li:humanizer", "li:post-audit", "li:hook-extractor",
+        "li:engagement-monitor", "li:profile-optimizer",
+        "li:content-planner", "li:employee-advocacy",
+    ]:
+        assert skill in data

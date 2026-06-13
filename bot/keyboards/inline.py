@@ -17,6 +17,21 @@ def platform_keyboard() -> InlineKeyboardMarkup:
     ])
 
 
+def linkedin_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✍️ Write post", callback_data="li:post-writer")],
+        [InlineKeyboardButton(text="💬 Draft comment", callback_data="li:comment-drafter"),
+         InlineKeyboardButton(text="↩️ Draft reply", callback_data="li:reply-handler")],
+        [InlineKeyboardButton(text="🧹 Humanize", callback_data="li:humanizer"),
+         InlineKeyboardButton(text="🔎 Audit", callback_data="li:post-audit")],
+        [InlineKeyboardButton(text="🪝 Hook extractor", callback_data="li:hook-extractor"),
+         InlineKeyboardButton(text="📊 Engagement", callback_data="li:engagement-monitor")],
+        [InlineKeyboardButton(text="👤 Profile", callback_data="li:profile-optimizer")],
+        [InlineKeyboardButton(text="🗓 7-day plan", callback_data="li:content-planner"),
+         InlineKeyboardButton(text="🤝 Advocacy", callback_data="li:employee-advocacy")],
+    ])
+
+
 def tiktok_subtype_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📱 Product demo", callback_data="tiktok:product_demo")],
@@ -29,6 +44,22 @@ def post_actions_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🔄 Regenerate", callback_data="post:regenerate"),
          InlineKeyboardButton(text="✏️ Edit", callback_data="post:edit")],
         [InlineKeyboardButton(text="💾 Save", callback_data="post:save")],
+        [InlineKeyboardButton(text="🚀 Publish", callback_data="post:publish")],
+    ])
+
+
+def linkedin_report_keyboard(extra_rows=None) -> InlineKeyboardMarkup:
+    rows = list(extra_rows or [])
+    rows.append([InlineKeyboardButton(text="💾 Save", callback_data="skill:save")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def humanizer_modes_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Strict", callback_data="hmz:strict"),
+         InlineKeyboardButton(text="Aesthetic", callback_data="hmz:aesthetic"),
+         InlineKeyboardButton(text="Forensic", callback_data="hmz:forensic")],
+        [InlineKeyboardButton(text="💾 Save", callback_data="skill:save")],
     ])
 
 

@@ -1,5 +1,5 @@
 import pytest
-from bot.config import Settings
+from bot.config import Settings, settings
 
 
 def test_settings_loads_from_env(monkeypatch):
@@ -70,3 +70,8 @@ def test_veo_settings_read_from_env(monkeypatch):
     settings = Settings(_env_file=None)
     assert settings.veo_duration_seconds == 6
     assert settings.veo_max_scenes == 5
+
+
+def test_publora_settings_optional_and_unset_by_default():
+    assert settings.publora_api_key is None
+    assert settings.linkedin_platform_id is None
