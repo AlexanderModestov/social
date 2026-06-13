@@ -1,8 +1,9 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from bot.services.tov.service import TovImportService
-from bot.services.tov.errors import NoPostsError
+from bot.services.tov.errors import NoPostsError, ServiceError
 from bot.services.tov.prompts import build_tov_prompt
+from bot.services.linkedin.apify_client import ApifyError
 from bot.db.channels import INSTAGRAM, TIKTOK, LINKEDIN
 
 
@@ -26,6 +27,26 @@ async def test_analyze_no_posts_raises():
     svc = TovImportService(apify_token="t", anthropic_api_key="k")
     fake_client = MagicMock()
     fake_client.fetch_profile_posts = MagicMock(return_value=[])
+    with patch.object(svc, "_client", fake_client):
+        with pytest.raises(NoPostsError):
+            await svc.analyze(TIKTOK, "@alex")
+
+
+@pytest.mark.asyncio
+async def test_analyze_apify_error_maps_to_service_error():
+    svc = TovImportService(apify_token="t", anthropic_api_key="k")
+    fake_client = MagicMock()
+    fake_client.fetch_profile_posts = MagicMock(side_effect=ApifyError("boom"))
+    with patch.object(svc, "_client", fake_client):
+        with pytest.raises(ServiceError):
+            await svc.analyze(TIKTOK, "@alex")
+
+
+@pytest.mark.asyncio
+async def test_analyze_text_empty_posts_raises_no_posts():
+    svc = TovImportService(apify_token="t", anthropic_api_key="k")
+    fake_client = MagicMock()
+    fake_client.fetch_profile_posts = MagicMock(return_value=[{"text": ""}])
     with patch.object(svc, "_client", fake_client):
         with pytest.raises(NoPostsError):
             await svc.analyze(TIKTOK, "@alex")

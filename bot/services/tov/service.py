@@ -4,6 +4,7 @@ Ties the per-channel config (Task 5), preprocessing (Task 6), and channel-tuned
 prompts together behind one ``analyze`` coroutine with a uniform error taxonomy:
 Apify transport failures -> ServiceError, empty results -> NoPostsError.
 """
+import asyncio
 import json
 import re
 
@@ -38,8 +39,6 @@ class TovImportService:
         self._limit = limit
 
     async def analyze(self, channel: str, raw_handle: str) -> dict:
-        import asyncio
-
         handle = extract_handle(channel, raw_handle)
         try:
             posts = await asyncio.to_thread(
