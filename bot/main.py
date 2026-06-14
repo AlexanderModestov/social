@@ -17,12 +17,18 @@ from bot.handlers import start, tone_of_voice, tiktok, settings as settings_hand
 from bot.handlers import instagram
 from bot.handlers import _veo_flow
 from bot.handlers import linkedin as linkedin_pkg
+from bot.middlewares.access import AccessControlMiddleware
 print("=== all imports OK ===", flush=True)
 
 async def main():
     logger.info("Creating bot...")
     bot = Bot(token=settings.telegram_bot_token)
     dp = Dispatcher(storage=MemoryStorage())
+
+    allowed = settings.allowed_users()
+    logger.info("Access control: %d allow-listed user(s)", len(allowed))
+    dp.update.outer_middleware(AccessControlMiddleware(allowed))
+
     logger.info("Bot created, registering routers...")
 
     @dp.errors()
