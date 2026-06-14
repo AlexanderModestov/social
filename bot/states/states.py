@@ -47,9 +47,11 @@ class TikTokStates(StatesGroup):
     waiting_subtype = State()
     waiting_product_url = State()
     recording = State()
+
+class VeoStates(StatesGroup):
+    choosing_video_mode = State()
     waiting_description = State()
     collecting_materials = State()
-    choosing_video_mode = State()
     reviewing_prompt = State()
     editing_prompt = State()
     refining_prompt = State()
