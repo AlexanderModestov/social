@@ -1,9 +1,31 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from bot.handlers import _veo_flow
-from bot.db.channels import INSTAGRAM
+from bot.db.channels import INSTAGRAM, TIKTOK
 from bot.states.states import VeoStates
 from tests.handlers._fakes import FakeMessage, FakeCallback, FakeFSMContext, fake_session_factory
+
+
+@pytest.mark.asyncio
+async def test_start_veo_flow_resets_stale_description_preset_from_prior_flow():
+    # Regression: an abandoned IG reel handoff left description_preset=True + a stale
+    # script in the FSM. A fresh TikTok video-from-plot flow must NOT inherit it.
+    state = FakeFSMContext({"description": "old IG script", "description_preset": True})
+    callback = FakeCallback(data="tiktok:video_plot")
+
+    await _veo_flow.start_veo_flow(callback, state, channel=TIKTOK)
+
+    assert state.state == VeoStates.choosing_video_mode
+    data = await state.get_data()
+    assert data["channel"] == TIKTOK
+    assert data["description_preset"] is False  # reset — not leaked
+    assert data["description"] == ""            # stale script wiped
+
+    # Driving the mode picker must ASK for a description, not skip to materials.
+    callback2 = FakeCallback(data="videomode:quick")
+    await _veo_flow.on_video_mode(callback2, state)
+    assert state.state == VeoStates.waiting_description
+    callback2.message.edit_text.assert_awaited_with("Describe your video idea.")
 
 
 @pytest.mark.asyncio

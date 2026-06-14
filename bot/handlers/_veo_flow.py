@@ -20,8 +20,19 @@ from bot.states.states import VeoStates
 router = Router()
 
 
-async def start_veo_flow(callback: CallbackQuery, state: FSMContext, *, channel: str):
-    await state.update_data(channel=channel)
+async def start_veo_flow(
+    callback: CallbackQuery, state: FSMContext, *, channel: str, description: str | None = None
+):
+    await state.update_data(
+        channel=channel,
+        description=description or "",
+        description_preset=bool(description),
+        video_mode=None,
+        materials=[],
+        prompts=[],
+        image_paths=[],
+        refine_context="",
+    )
     await state.set_state(VeoStates.choosing_video_mode)
     await callback.message.edit_text(
         "What kind of video?", reply_markup=video_mode_keyboard(),
