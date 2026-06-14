@@ -20,6 +20,7 @@ from bot.services.tov.errors import (
     PrivateProfileError,
     ServiceError,
 )
+from bot.services.tov.formatter import format_tov_profile
 from bot.services.tov.service import TovImportService
 from bot.states.states import ToneOfVoiceStates
 
@@ -323,10 +324,9 @@ async def on_import_handle(message: Message, state: FSMContext):
         for part in split_message(formatted):
             await message.answer(part)
     else:
-        await message.answer(
-            f"{CHANNEL_LABELS[channel]} @{handle} — "
-            f"{profile.get('posts_analyzed', 0)} posts analyzed. ✅"
-        )
+        formatted = format_tov_profile(channel, profile)
+        for part in split_message(formatted):
+            await message.answer(part)
 
     next_state = await _offer_next_or_done(message, message.from_user.id)
     if next_state is None:

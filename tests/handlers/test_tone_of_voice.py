@@ -137,7 +137,12 @@ async def test_import_handle_calls_analyze_with_channel_and_upserts():
     state = FakeFSMContext({"channel": TIKTOK})
     message = FakeMessage(text="@somebody")
 
-    profile = {"handle": "somebody", "posts_analyzed": 12, "voice_summary": "v"}
+    profile = {
+        "handle": "somebody",
+        "posts_analyzed": 12,
+        "persona_summary": "deadpan reviewer of gadgets",
+        "dos": ["hook in 2 seconds"],
+    }
     fake_svc = MagicMock()
     fake_svc.analyze = AsyncMock(return_value=profile)
 
@@ -158,6 +163,10 @@ async def test_import_handle_calls_analyze_with_channel_and_upserts():
     assert kwargs["channel"] == TIKTOK
     assert kwargs["profile_json"] == profile
     assert "somebody" in kwargs["name"]
+    # the analyzed tone of voice is actually shown to the user (not just a one-liner)
+    sent = " ".join(str(c.args[0]) for c in message.answer.await_args_list if c.args)
+    assert "deadpan reviewer of gadgets" in sent
+    assert "hook in 2 seconds" in sent
 
 
 @pytest.mark.asyncio
