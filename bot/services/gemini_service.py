@@ -189,3 +189,34 @@ class GeminiService:
         system_prompt = self._refine_system(current_prompts, instruction, tone_profile, mode)
         raw = await self._generate_json(instruction, system_prompt)
         return self._parse_refine_result(raw, max_scenes)
+
+    def _scenario_system(self, history: str, tone_profile: dict) -> str:
+        return (
+            "You are a creative partner helping develop an Instagram Reel from a user's "
+            "idea, working as a short conversation. "
+            "Respond with ONLY a JSON object. If the idea is too vague to script, ask "
+            'for the single most useful missing detail: return {"kind": "clarify", '
+            '"question": "<one short question>"}. Once you have enough to work with, '
+            'return {"kind": "script", "script": "<hook + beats + shot ideas>", '
+            '"caption": "<caption>"} — the script should open with a strong hook, then '
+            "lay out the Reel as a few beats with concrete shot ideas. Ask a question "
+            "only when you genuinely cannot script yet — never as a stall.\n\n"
+            f"CONVERSATION SO FAR:\n{history}\n\n"
+            f"Match this tone of voice: {json.dumps(tone_profile)}"
+        )
+
+    async def develop_instagram_scenario(self, idea: str, history: str, tone_profile: dict) -> dict:
+        system = self._scenario_system(history, tone_profile)
+        raw = await self._generate_json(idea, system)
+        kind = raw.get("kind")
+        if kind == "clarify":
+            q = (raw.get("question") or "").strip()
+            if not q:
+                raise ValueError("clarify missing question")
+            return {"kind": "clarify", "question": q}
+        if kind == "script":
+            script = (raw.get("script") or "").strip()
+            if not script:
+                raise ValueError("script missing")
+            return {"kind": "script", "script": script, "caption": (raw.get("caption") or "").strip()}
+        raise ValueError(f"unknown scenario kind: {kind!r}")

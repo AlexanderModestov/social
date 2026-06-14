@@ -145,3 +145,56 @@ async def test_caption_from_photos_calls_generate(tmp_path, monkeypatch):
     assert "Sunset" in out
     assert called["images"] == [str(img)]
     assert "caption" in called["system"].lower()
+
+
+@pytest.mark.asyncio
+async def test_develop_scenario_returns_clarify(monkeypatch):
+    from bot.services.gemini_service import GeminiService
+    svc = GeminiService()
+    async def fake_json(text, system):
+        return {"kind": "clarify", "question": "Who is the audience?"}
+    monkeypatch.setattr(svc, "_generate_json", fake_json)
+    out = await svc.develop_instagram_scenario("a reel about coffee", "", {})
+    assert out == {"kind": "clarify", "question": "Who is the audience?"}
+
+
+@pytest.mark.asyncio
+async def test_develop_scenario_returns_script(monkeypatch):
+    from bot.services.gemini_service import GeminiService
+    svc = GeminiService()
+    async def fake_json(text, system):
+        return {"kind": "script", "script": "HOOK...\nBEATS...", "caption": "c"}
+    monkeypatch.setattr(svc, "_generate_json", fake_json)
+    out = await svc.develop_instagram_scenario("coffee reel", "ctx", {})
+    assert out["kind"] == "script" and "HOOK" in out["script"]
+
+
+@pytest.mark.asyncio
+async def test_develop_scenario_unknown_kind_raises(monkeypatch):
+    from bot.services.gemini_service import GeminiService
+    svc = GeminiService()
+    async def fake_json(text, system):
+        return {"kind": "wat"}
+    monkeypatch.setattr(svc, "_generate_json", fake_json)
+    with pytest.raises(ValueError):
+        await svc.develop_instagram_scenario("coffee reel", "", {})
+
+
+@pytest.mark.asyncio
+async def test_develop_scenario_empty_question_raises(monkeypatch):
+    from bot.services.gemini_service import GeminiService
+    svc = GeminiService()
+    async def fake_json(text, system):
+        return {"kind": "clarify", "question": "   "}
+    monkeypatch.setattr(svc, "_generate_json", fake_json)
+    with pytest.raises(ValueError):
+        await svc.develop_instagram_scenario("coffee reel", "", {})
+
+
+def test_scenario_system_embeds_history_and_tone():
+    svc = GeminiService()
+    sys = svc._scenario_system("USER: hi\nBOT: hey", {"voice": "warm"})
+    assert '"kind"' in sys                       # JSON shape specified
+    assert "clarify" in sys and "script" in sys  # both branches
+    assert "USER: hi" in sys                      # history embedded
+    assert "warm" in sys                          # tone injected
