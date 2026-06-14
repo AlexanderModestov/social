@@ -105,6 +105,21 @@ class GeminiService:
         text = await self._generate(description, image_paths, system_prompt)
         return self._split_scenes(text, max_scenes)
 
+    def _caption_system(self, tone_profile: dict) -> str:
+        return (
+            "You are writing an Instagram caption for the attached photo(s). "
+            "Look at what is actually in the images and write a caption that fits them. "
+            "Keep it natural, add 3-6 relevant hashtags at the end. "
+            "Output only the caption text. "
+            f"Match this tone of voice: {json.dumps(tone_profile)}"
+        )
+
+    async def caption_from_photos(self, image_paths: list[str], tone_profile: dict) -> str:
+        system_prompt = self._caption_system(tone_profile)
+        text = await self._generate(
+            "Write an Instagram caption for these photos.", image_paths, system_prompt)
+        return text.strip()
+
     def _parse_refine_result(self, raw: dict, max_scenes: int) -> dict:
         kind = raw.get("kind")
         if kind == "clarify":

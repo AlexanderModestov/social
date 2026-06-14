@@ -128,3 +128,20 @@ def test_parse_refine_result_unknown_kind_raises():
     svc = GeminiService()
     with pytest.raises(ValueError):
         svc._parse_refine_result({"kind": "wat"}, max_scenes=3)
+
+
+@pytest.mark.asyncio
+async def test_caption_from_photos_calls_generate(tmp_path, monkeypatch):
+    from bot.services.gemini_service import GeminiService
+    svc = GeminiService()
+    called = {}
+    async def fake_generate(description, image_paths, system_prompt):
+        called["images"] = image_paths
+        called["system"] = system_prompt
+        return "Sunset vibes 🌅 #travel"
+    monkeypatch.setattr(svc, "_generate", fake_generate)
+    img = tmp_path / "a.jpg"; img.write_bytes(b"x")
+    out = await svc.caption_from_photos([str(img)], {"dos": ["short"]})
+    assert "Sunset" in out
+    assert called["images"] == [str(img)]
+    assert "caption" in called["system"].lower()
