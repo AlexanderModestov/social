@@ -32,6 +32,39 @@ async def test_settings_delete_removes_and_rerenders():
 
 
 @pytest.mark.asyncio
+async def test_settings_view_renders_saved_tov():
+    from bot.handlers import settings as st
+    callback = FakeCallback(data="settings:view:linkedin")
+    tov = MagicMock()
+    tov.profile_json = {
+        "handle": "alex",
+        "posts_analyzed": 3,
+        "persona_summary": "pragmatic operator voice",
+        "dos": ["be specific"],
+    }
+    fake_repo = MagicMock(); fake_repo.get_for_channel = AsyncMock(return_value=tov)
+    with patch.object(st, "ToneOfVoiceRepository", return_value=fake_repo), \
+         patch.object(st, "async_session_factory", fake_session_factory()):
+        await st.on_settings_view(callback, FakeFSMContext())
+    fake_repo.get_for_channel.assert_awaited_once_with(callback.from_user.id, "linkedin")
+    sent = " ".join(str(c.args[0]) for c in callback.message.answer.await_args_list if c.args)
+    assert "pragmatic operator voice" in sent and "be specific" in sent
+    callback.answer.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_settings_view_no_tov_alerts():
+    from bot.handlers import settings as st
+    callback = FakeCallback(data="settings:view:tiktok")
+    fake_repo = MagicMock(); fake_repo.get_for_channel = AsyncMock(return_value=None)
+    with patch.object(st, "ToneOfVoiceRepository", return_value=fake_repo), \
+         patch.object(st, "async_session_factory", fake_session_factory()):
+        await st.on_settings_view(callback, FakeFSMContext())
+    callback.answer.assert_awaited()
+    assert callback.answer.await_args.kwargs.get("show_alert") is True
+
+
+@pytest.mark.asyncio
 async def test_settings_create_enters_method_choice():
     from bot.handlers import settings as st
     from bot.states.states import ToneOfVoiceStates

@@ -138,8 +138,9 @@ def settings_keyboard(channels_with_tov: set[str]) -> InlineKeyboardMarkup:
     rows = []
     for c in CHANNELS:
         if c in channels_with_tov:
+            rows.append([InlineKeyboardButton(text=f"{CHANNEL_LABELS[c]} · 👁 View", callback_data=f"settings:view:{c}")])
             rows.append([
-                InlineKeyboardButton(text=f"{CHANNEL_LABELS[c]} · ✏️ Recreate", callback_data=f"settings:create:{c}"),
+                InlineKeyboardButton(text="✏️ Recreate", callback_data=f"settings:create:{c}"),
                 InlineKeyboardButton(text="🗑 Delete", callback_data=f"settings:delete:{c}"),
             ])
         else:

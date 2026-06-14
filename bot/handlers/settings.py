@@ -3,11 +3,21 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from bot.db.channels import INSTAGRAM
 from bot.db.session import async_session_factory
 from bot.db.repository import ToneOfVoiceRepository
 from bot.keyboards.inline import settings_keyboard
+from bot.services.instagram_tov_formatter import format_instagram_profile, split_message
+from bot.services.tov.formatter import format_tov_profile
 
 router = Router()
+
+
+def _render_tov(channel: str, profile: dict) -> str:
+    if channel == INSTAGRAM:
+        profile = {**profile, "username": profile.get("username") or profile.get("handle")}
+        return format_instagram_profile(profile)
+    return format_tov_profile(channel, profile)
 
 
 async def _channels(user_id: int) -> set[str]:
@@ -22,6 +32,19 @@ async def cmd_settings(message: Message):
         "Your tone of voice per channel:",
         reply_markup=settings_keyboard(channels),
     )
+
+
+@router.callback_query(F.data.startswith("settings:view:"))
+async def on_settings_view(callback: CallbackQuery, state: FSMContext):
+    channel = callback.data.split(":")[2]
+    async with async_session_factory() as session:
+        tov = await ToneOfVoiceRepository(session).get_for_channel(callback.from_user.id, channel)
+    if tov is None:
+        await callback.answer("No tone of voice for that channel yet.", show_alert=True)
+        return
+    for part in split_message(_render_tov(channel, tov.profile_json or {})):
+        await callback.message.answer(part)
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("settings:delete:"))

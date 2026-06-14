@@ -110,5 +110,8 @@ def test_method_keyboard_carries_channel():
 def test_settings_shows_status_per_channel():
     kb = settings_keyboard(channels_with_tov={INSTAGRAM})
     data = [b.callback_data for row in kb.inline_keyboard for b in row]
-    assert "settings:delete:instagram" in data       # created → delete/edit
+    assert "settings:view:instagram" in data         # created → view
+    assert "settings:delete:instagram" in data       # created → delete
+    assert "settings:create:instagram" in data       # created → recreate
     assert "settings:create:tiktok" in data           # missing → create
+    assert "settings:view:tiktok" not in data         # missing → no view
