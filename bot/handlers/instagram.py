@@ -131,8 +131,9 @@ async def on_scenario_message(message: Message, state: FSMContext):
 @router.callback_query(InstagramStates.scenario_ready, F.data == "ig:reel")
 async def on_scenario_reel(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    # Seed description + channel BEFORE start_veo_flow so on_video_mode skips the ask.
-    await state.update_data(channel=INSTAGRAM, description=data.get("scenario_script", ""))
+    # Seed description + an explicit skip flag so on_video_mode skips the ask.
+    # start_veo_flow sets the channel itself.
+    await state.update_data(description=data.get("scenario_script", ""), description_preset=True)
     await start_veo_flow(callback, state, channel=INSTAGRAM)
 
 

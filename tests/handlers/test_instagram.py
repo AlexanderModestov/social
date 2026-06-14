@@ -99,6 +99,7 @@ async def test_reel_handoff_seeds_state_and_enters_veo():
     data = await state.get_data()
     assert data["channel"] == INSTAGRAM
     assert data["description"] == "HOOK then beats"
+    assert data["description_preset"] is True
 
 
 @pytest.mark.asyncio
@@ -109,3 +110,45 @@ async def test_scenario_cancel_clears():
     await instagram.on_scenario_message(message, state)
     assert state.state is None
     message.answer.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_caption_done_gemini_error_cleans_up_and_clears():
+    state = FakeFSMContext({"caption_photos": [{"type": "photo", "file_id": "f1"}]})
+    state.state = InstagramStates.collecting_caption_photos
+    message = FakeMessage(text="/done")
+    fake_repo = MagicMock()
+    fake_repo.get_for_channel = AsyncMock(return_value=None)
+    with patch.object(instagram, "ToneOfVoiceRepository", return_value=fake_repo), \
+         patch.object(instagram, "async_session_factory", fake_session_factory()), \
+         patch.object(instagram, "_download_photos", AsyncMock(return_value=["/tmp/a.jpg"])), \
+         patch.object(instagram, "_cleanup_photos") as cleanup, \
+         patch.object(instagram, "GeminiService") as G:
+        G.return_value.caption_from_photos = AsyncMock(side_effect=Exception("boom"))
+        await instagram.on_caption_done(message, state)
+
+    # temp files cleaned up despite the error
+    cleanup.assert_called_once_with(["/tmp/a.jpg"])
+    # an error message was sent
+    assert any("boom" in c.args[0] for c in message.answer.await_args_list)
+    # state cleared
+    assert state.state is None
+
+
+@pytest.mark.asyncio
+async def test_scenario_gemini_error_stays_and_messages():
+    state = FakeFSMContext({"scenario_context": ""})
+    state.state = InstagramStates.scenario_developing
+    message = FakeMessage(text="a reel about coffee")
+    fake_repo = MagicMock()
+    fake_repo.get_for_channel = AsyncMock(return_value=None)
+    with patch.object(instagram, "ToneOfVoiceRepository", return_value=fake_repo), \
+         patch.object(instagram, "async_session_factory", fake_session_factory()), \
+         patch.object(instagram, "GeminiService") as G:
+        G.return_value.develop_instagram_scenario = AsyncMock(side_effect=Exception("boom"))
+        await instagram.on_scenario_message(message, state)
+
+    # user stays in the developing state — no exception escaped
+    assert state.state == InstagramStates.scenario_developing
+    # an error message was sent
+    assert any("boom" in c.args[0] for c in message.answer.await_args_list)
