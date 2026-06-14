@@ -15,8 +15,23 @@ def main_menu_keyboard(channels_with_tov: set[str] | None = None) -> InlineKeybo
 
 def platform_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📸 Instagram", callback_data="platform:instagram")],
         [InlineKeyboardButton(text="💼 LinkedIn post", callback_data="platform:linkedin")],
         [InlineKeyboardButton(text="🎵 TikTok video", callback_data="platform:tiktok")],
+    ])
+
+
+def instagram_subtype_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📸 Caption from photos", callback_data="ig:caption")],
+        [InlineKeyboardButton(text="🎬 Scenario helper", callback_data="ig:scenario")],
+    ])
+
+
+def ig_generate_reel_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎬 Generate Reel", callback_data="ig:reel")],
+        [InlineKeyboardButton(text="✅ Keep script only", callback_data="ig:script_done")],
     ])
 
 

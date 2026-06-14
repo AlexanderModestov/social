@@ -48,6 +48,12 @@ class TikTokStates(StatesGroup):
     waiting_product_url = State()
     recording = State()
 
+class InstagramStates(StatesGroup):
+    waiting_subtype = State()
+    collecting_caption_photos = State()
+    scenario_developing = State()
+    scenario_ready = State()
+
 class VeoStates(StatesGroup):
     choosing_video_mode = State()
     waiting_description = State()

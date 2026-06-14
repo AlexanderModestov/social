@@ -5,11 +5,14 @@ def test_main_menu_has_two_buttons():
     buttons = [btn for row in kb.inline_keyboard for btn in row]
     assert len(buttons) == 2
 
-def test_platform_keyboard_has_linkedin_and_tiktok():
+def test_platform_keyboard_has_instagram_linkedin_and_tiktok():
     kb = platform_keyboard()
     callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+    assert "platform:instagram" in callbacks
     assert "platform:linkedin" in callbacks
     assert "platform:tiktok" in callbacks
+    # Instagram is the first row
+    assert kb.inline_keyboard[0][0].callback_data == "platform:instagram"
 
 def test_tiktok_subtype_has_two_options():
     kb = tiktok_subtype_keyboard()

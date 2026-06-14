@@ -33,8 +33,16 @@ async def start_veo_flow(callback: CallbackQuery, state: FSMContext, *, channel:
 async def on_video_mode(callback: CallbackQuery, state: FSMContext):
     mode = callback.data.split(":")[1]  # "quick" | "full"
     await state.update_data(video_mode=mode, materials=[])
-    await state.set_state(VeoStates.waiting_description)
-    await callback.message.edit_text("Describe your video idea.")
+    data = await state.get_data()
+    if (data.get("description") or "").strip():
+        # description already supplied (e.g. Instagram scenario handoff) — skip the ask
+        await state.set_state(VeoStates.collecting_materials)
+        await callback.message.edit_text(
+            "Now send photos to include (optional).\nType /done when ready."
+        )
+    else:
+        await state.set_state(VeoStates.waiting_description)
+        await callback.message.edit_text("Describe your video idea.")
     await callback.answer()
 
 

@@ -2,7 +2,27 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from bot.handlers import _veo_flow
 from bot.db.channels import INSTAGRAM
+from bot.states.states import VeoStates
 from tests.handlers._fakes import FakeMessage, FakeCallback, FakeFSMContext, fake_session_factory
+
+
+@pytest.mark.asyncio
+async def test_on_video_mode_with_description_skips_to_materials():
+    state = FakeFSMContext({"description": "a dog surfing"})
+    callback = FakeCallback(data="videomode:quick")
+    await _veo_flow.on_video_mode(callback, state)
+    assert state.state == VeoStates.collecting_materials
+    callback.message.edit_text.assert_awaited()
+    assert "photos" in callback.message.edit_text.await_args.args[0].lower()
+
+
+@pytest.mark.asyncio
+async def test_on_video_mode_without_description_asks():
+    state = FakeFSMContext({})
+    callback = FakeCallback(data="videomode:quick")
+    await _veo_flow.on_video_mode(callback, state)
+    assert state.state == VeoStates.waiting_description
+    callback.message.edit_text.assert_awaited_with("Describe your video idea.")
 
 
 @pytest.mark.asyncio

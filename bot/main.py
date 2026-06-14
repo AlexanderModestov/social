@@ -14,6 +14,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import ErrorEvent
 from bot.config import settings
 from bot.handlers import start, tone_of_voice, tiktok, settings as settings_handler
+from bot.handlers import instagram
 from bot.handlers import _veo_flow
 from bot.handlers import linkedin as linkedin_pkg
 print("=== all imports OK ===", flush=True)
@@ -38,6 +39,7 @@ async def main():
     dp.include_router(tone_of_voice.router)
     for r in linkedin_pkg.routers:
         dp.include_router(r)
+    dp.include_router(instagram.router)
     dp.include_router(tiktok.router)
     dp.include_router(_veo_flow.router)
 
